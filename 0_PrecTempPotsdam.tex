@@ -8,9 +8,18 @@
 \renewcommand{\dateseparator}{-}
 \usepackage{graphicx, hyperref, color, float, xcolor, multicol, amsmath, setspace, bookmark}
 \usepackage[hypcap]{caption} % link figures to top of them
-\usepackage[style=authoryear, natbib=true, firstinits=true, uniquename=init, uniquelist=false,
-sorting=nyt, url=false, backend=biber, maxbibnames=99, maxcitenames=2, mincitenames=1]{biblatex}
-\bibliography{My Library7.bib}
+\usepackage[style=authoryear, natbib=true, url=false, dashed=false, isbn=false, firstinits=true, uniquename=init, uniquelist=false, sorting=nyt, backend=biber, maxbibnames=99, maxcitenames=2, mincitenames=1]{biblatex}
+\renewbibmacro{in:}{}
+\DeclareFieldFormat[article,incollection,unpublished]{title}{#1}
+
+\AtEveryBibitem{%
+  \ifentrytype{article}{%
+    \clearfield{pages}%
+  }{%
+  }%
+}
+
+\bibliography{My Library8.bib}
 \renewcommand\mkbibnamelast[1]{\textsc{#1}} % SmallCaps
 
 \setlength{\columnsep}{16pt}
@@ -49,7 +58,7 @@ Institute for Earth and Environmental Sciences\\
 Supervisors: Dr. Maik Heistermann \& Dr. Gerd Bürger\\
 Matrikel Nr.: 745953\\
 \normalsize 
-\todo{Version: \today\ \currenttime}
+%\todo{Version: \today\ \currenttime}
 
 \end{center}%
 %\end{singlespace}
@@ -122,9 +131,7 @@ Potsdam, den
 
 \begin{multicols}{2}
 
-\begin{spacing}{0.1}
 \tableofcontents
-\end{spacing} 
 
 
 \section*{Figures}
@@ -179,8 +186,12 @@ wei	&	Weibull	\\
 %\pagebreak
 
 \section*{About this document}
-The \href{https://dl.dropboxusercontent.com/u/4836866/PrecTempPotsdam/0_PrecTempPotsdam.tex}{texcode} and \href{https://dl.dropboxusercontent.com/u/4836866/PrecTempPotsdam/1_PrecTemp-Potsdam.R}{analysis script} will be available on \href{https://github.com/BerryBoessenkool}{github.com/BerryBoessenkool}/\todo{prectemp}.
-Shorter time series for analysis reproduction can be found at the \href{http://www.dwd.de/bvbw/appmanager/bvbw/dwdwwwDesktop?_nfpb=true&_pageLabel=_dwdwww_klima_umwelt_klimadaten_deutschland&T82002gsbDocumentPath=Navigation\%2FOeffentlichkeit\%2FKlima__Umwelt\%2FKlimadaten\%2Fkldaten__kostenfrei\%2Fausgabe__stundenwerte__node.html\%3F__nnn\%3Dtrue}{DWD Archive}. As the link is frequently changed, reach it via \href{http://www.dwd.de}{dwd.de} - Klima und Umwelt - Klimadaten - Klimadaten/online/frei - Klimadaten Deutschland - Messstationen - Stundenwerte - Niederschlag (Tabelle).
+%The \href{https://dl.dropboxusercontent.com/u/4836866/PrecTempPotsdam/0_PrecTempPotsdam.tex}{texcode} and \href{https://dl.dropboxusercontent.com/u/4836866/PrecTempPotsdam/1_PrecTemp-Potsdam.R}{analysis script} will be available on \href{https://github.com/BerryBoessenkool}{github.com/BerryBoessenkool}/\todo{prectemp}.
+The texcode for this document and the analysis script are available on \href{https://github.com/BerryBoessenkool/prectemp}{github.com/BerryBoessenkool/prectemp}.
+Shorter time series for analysis reproduction can be found at the DWD Archive under
+\href{http://www.dwd.de}{dwd.de} - Klima und Umwelt - Klimadaten - Klimadaten/online/frei [mehr] - Klimadaten Deutschland - Messstationen - Stundenwerte - Niederschlag (Tabelle).
+%\href{http://www.dwd.de/bvbw/appmanager/bvbw/dwdwwwDesktop?_nfpb=true&_pageLabel=_dwdwww_klima_umwelt_klimadaten_deutschland&T82002gsbDocumentPath=Navigation\%2FOeffentlichkeit\%2FKlima__Umwelt\%2FKlimadaten\%2Fkldaten__kostenfrei\%2Fausgabe__stundenwerte__node.html\%3F__nnn\%3Dtrue}{DWD Archive}.
+%As the link is frequently changed, reach it via 
 
 %http://www.dwd.de/bvbw/appmanager/bvbw/dwdwwwDesktop?_nfpb=true&_pageLabel=_dwdwww_klima_umwelt_klimadaten_deutschland&T82002gsbDocumentPath=Navigation\%2FOeffentlichkeit\%2FKlima__Umwelt\%2FKlimadaten\%2Fkldaten__kostenfrei\%2Fausgabe__stundenwerte__node.html\%3F__nnn\%3Dtrue
 
@@ -191,13 +202,13 @@ I would like to thank Maik Heistermann and Gerd Bürger for their support and wi
 
 I appreciate the cooperation with Gabriele Malitz from the DWD who provided us access to the large datasets.
 
-Furthermore, I am indebted to my proofreaders Carmen Begerock, Lisa Berghäuser, Sarah Bertz, Anne-Karin Cooke, Carmen Hens, Stefan Klaus, Erik Peukert, Hannah Sachße, Magdalena Uber and Peter Weißhuhn.
+Furthermore, I am indebted to my proofreaders Carmen Begerock, Lisa Berghäuser, Sarah Bertz, Anne-Karin Cooke, Carmen Hens, Stefan Klaus, Erik Peukert, Aditi Rosegger, Hannah Sachße, Magdalena Uber and Peter Weißhuhn.
 
 \end{multicols}
 
 
 \pagebreak
-
+\addtocontents{toc}{~\hfill\textbf{Page}\par}
 \section{Background} % 1 %%%%%%%%%%%%%%%%%%%%
 \label{sec:background}
 \begin{multicols}{2}
@@ -209,16 +220,16 @@ The effect occurs quite consistently with precipitation intensities recorded at 
 On larger time scales, the behaviour is less pronounced.
 %\citet{klein_tank_dependence_1993, brandsma_statistical_1997, lenderink_increase_2008, berg_seasonal_2009, hardwick_jones_observed_2010, utsumi_does_2011, mishra_relationship_2012, berg_strong_2013, panthou_relationship_2014, westra_future_2014}.
 
-Several explanations for this phenomenon have been proposed, such as an increase of the proportion of rainfall stemming from convective events as opposed to large scale stratiform precipitation \citep{haerter_unexpected_2009}, a slower increase of moisture availability than in moisture storage capacity dictated by the Clausius-Clapeyron relationship \citep{berg_seasonal_2009} or fully-saturated conditions lasting shorter than event duration \citep{hardwick_jones_observed_2010}. 
+Several explanations for this phenomenon have been proposed, such as an increase in the proportion of rainfall stemming from convective events as opposed to large scale stratiform precipitation \citep{haerter_unexpected_2009}. Other explanations include a slower increase of moisture availability than in moisture storage capacity dictated by the Clausius-Clapeyron relationship \citep{berg_seasonal_2009} or fully-saturated conditions lasting shorter than event duration \citep{hardwick_jones_observed_2010}. 
 There may be several different mechanisms in process at different time scales and locations \citep{utsumi_does_2011}.
-For example, relative humidity may be more important in ocean-surrounded Australia than in continental climate regions.
+For example, relative humidity may be more important in Australia, which is surrounded by ocean, than in continental climate regions.
 
 The decrease in precipitation intensity often follows the decreasing number of values per bin with increasing temperature.
 Our research focuses on examining whether this drop could (partly) be a statistical sample size artefact. 
 We obtained time series of precipitation and temperature from 14 stations across Germany from the German Weather Service (DWD).
 Each dataset contains summer data from May to September, 1951-2010.
 The plots to illustrate our analysis refer to Potsdam in the northeast of Germany (52:23~$^{\circ}$N,  13:04~$^{\circ}$O,  81~m above sea level).
-Judged by histograms of precipitation records, Potsdam is representative of the 14 stations for which data are available.
+Judged on the basis of histograms of precipitation records, Potsdam is representative of the 14 stations for which data is available.
 The hourly rainfall depth is recorded by Hellmann gauges with a resolution of 1/10~mm.
 The daily temperature average is computed from hourly measurements recorded at a height of 2~m above ground level.
 \end{multicols}
@@ -252,7 +263,7 @@ We also quantify the effect of the fitting procedure on the shapes and positions
 \begin{multicols}{2}
 
 Following the analysis method of \citet{lenderink_increase_2008, berg_unexpected_2013}, we partition the hourly precipitation depths according to the daily mean air temperature.
-We used temperature bins with a fix width of two degrees Celsius.
+We used temperature bins with a fixed width of two degrees Celsius.
 For each bin, several empirical precipitation quantiles are presented in figure~\ref{fig:equant}. The form of the P-T relationships is consistent with the behaviour mentioned in the background section.
 
 The quantiles are the average of R's 9 implemented methods based on weighted averages of consecutive order statistics, documented in the \texttt{quantile} help page \citep{r_core_team_r:_2015-1} and obtained with the function \texttt{quantileMean} \citep{boessenkool_berryfunctions:_2014}.
@@ -267,7 +278,7 @@ VPsat = 6.1094 * exp\left(\frac{17.625*temp}{temp+243.04}\right)
 This equation yields a CC-rate for rainfall intensity change of 6 to 7~\% per degree for 20 and 0~$^{\circ}$C respectively. 
 The PT-figures show VPsat in hPa with a solid line.
 The CC-rate beginning at several values is added with dashed lines.
-Along those lines can be estimated that the rate of precipitation increase follows CC-scaling for low temperatures and shows super-CC-scaling between 15 and 20~$^{\circ}$C.
+Along those lines, it can be estimated that the rate of precipitation increase follows CC-scaling for low temperatures and shows super-CC-scaling between 15 and 20~$^{\circ}$C.
 
 \begin{figure}[H] %2
 %\centering
@@ -303,7 +314,7 @@ This limits the range of possible values obtained by random number generation fr
 The histogram of precipitation values and the closest distribution functions are shown in figure~\ref{fig:fitdist}.
 As fitting to all the non-zero values proves difficult (e.g. tail properties are completely missed) and measurements of low rainfall intensities have a higher relative uncertainty, values below 0.5~mm/h are omitted. 
 %This choice is elaborated in the discussion. 
-The goodness of fit is judged by the RMSE of the top 10~\% of the points in the ECDF of the sample \citep{r_core_team_r:_2015} and the CDF of the distributions.
+The goodness of fit is judged by the root mean square error (RMSE) of the top 10~\% of the points in the ECDF of the sample \citep{r_core_team_r:_2015} and the CDF of the distributions.
 %of the upper 5~\% (above the red dashed line in figure~\ref{fig:fitdist})
 %This places the focus of distribution selection on proximity to the highest values.
 
@@ -315,13 +326,18 @@ For example, if the censored Q0.99 is to be computed from the top 20~\% of the d
 p2  =  \frac{p-t}{1-t}~~derived~from~~\frac{1-p}{1-t}  =  \frac{1-p2}{1-0} 
 \end{equation}
 
+\begin{figure}[H] %4
 \includegraphics[width=0.48\textwidth]{figure/formula.pdf}
+\caption[Probability adjustment]{Probability adjustment for censored quantiles with truncation percentage t.}
+\label{fig:propadj}
+\end{figure}
+
 
 %The resulting fitting procedure can be classified as a peak over threshold method.
 \citet{berg_seasonal_2009} used the top 20~\% of precipitation intensities to fit a General Pareto Distribution (GPD or gpa).
 \citet{lenderink_increase_2008} used the top 5~\%.
 In our dataset, the GPD describes the full distribution well, but misses the tail behaviour, underestimating high quantiles.
-It performs better with the dataset truncated to the top 10~\% of values, see the right panel in figure~\ref{fig:fitdist}.
+It performs better with the dataset truncated to the top 10~\% of values (see the right panel in figure~\ref{fig:fitdist}).
 %Using fewer values, however, limits the temperature range where enough data points remain available, restraining the analysis to the temperature range where quantiles usually do not drop yet.
 As opposed to \citet{haerter_heavy_2010}, we find that GPD parametric quantiles rise with truncation percentage. 
 The lower part of the Potsdam dataset is not GP-distributed.
@@ -340,7 +356,7 @@ Since at least 5 values are needed to estimate the distribution parameters, the 
 \section{Simulations} % 5 %%%%%%%%%%%%%%%%%%%%
 
 \begin{multicols}{2}
-Across several combinations of rainfall threshold values and truncation proportion, three distribution functions consistently are closest to the data and are selected for further analysis: Wakeby, Kappa and Weibull. 
+Across several combinations of rainfall threshold values and truncation proportions, three distribution functions are consistently closest to the data and are selected for further analyses: Wakeby, Kappa and Weibull. 
 For each sample size (n) between 25 and 1000, 200 samples are taken from the 7667 precipitation records.
 From these samples, empirical and parametric quantiles are estimated.
 The medians of the 200 samples are shown in figure~\ref{fig:quantnreal}.
@@ -378,7 +394,7 @@ The simulation medians of all three distributions can be compared in figure~\ref
  %, used in \href{http://www.rdocumentation.org/packages/berryFunctions/functions/quantileBands}{\texttt{quantileBands}}).
 The actual 99.9~\% quantile of the distribution (23 mm/h) is drawn as a purple line in figure~\ref{fig:quantnwak}.
 Empirical quantiles at low sample sizes reach that value in only a few simulations (left panel). The mean and median of simulations reach this value asymptotically only at sample sizes larger than 500.
-The random estimation error as indicated by the shaded areas around the median appears to be less dependent on sample size than the bias. 
+The random estimation error, as indicated by the shaded areas around the median, appears to be less dependent on sample size than the bias. 
 This plot indicates that small sample sizes could indeed be a reason for low empirical quantiles at high temperature bins, as they usually contain few values (see the sample sizes in figure~\ref{fig:equant}).
 
 The parametric quantiles from fitting the distribution to each sample hardly depend on sample size (right panel).
@@ -426,7 +442,11 @@ The results are shown in figure~\ref{fig:tquant}.
 %The figure shows the combined effects of random and systematic estimation errors as shown in figure~\ref{fig:quantnwak}.
 Between 20 and 26~$^\circ$C, where the empirical values decrease, the parametric quantiles keep increasing, especially for the highest quantiles.
 The estimated numbers differ increasingly between distribution types with rising quantile. 
-Analysis for the other stations shows consistent results.
+Analyses for the other stations show consistent results.
+
+The parametric method requires significantly fewer datapoints in a sample than empirical quantiles need to converge to the actual (unknown) value.
+In the combination of small sample sizes and very high quantiles, it is recommendable to use parametric quantiles.
+
 %This is shown in a \href{https://dl.dropboxusercontent.com/u/4836866/PrecTempPotsdam/figure/9_allstations_tquant.pdf}{separate file} (27 MB).
 %\todo{The plot for Potsdam in the large pdf is different from figure~\ref{fig:tquant}!}
 
@@ -440,7 +460,7 @@ Analysis for the other stations shows consistent results.
 \begin{figure}[H] %8
 %\centering
 \includegraphics[width=0.99\textwidth]{figure/7_theoreticalquantiles_compare.pdf}
-\caption[Parametric quantiles]{Precipitation intensity quantiles per temperature bin. Empirical quantiles estimated as before in figure~\ref{fig:equant}, parametric quantiles from fitting the distributions separately for each 2~$^\circ$C temperature bin.}
+\caption[Parametric quantiles]{Several precipitation intensity quantiles per temperature bin. Empirical quantiles estimated separately for each 2~$^\circ$C temperature bin as before in figure~\ref{fig:equant}. Parametric quantiles from fitting the distributions per bin.}
 \label{fig:tquant}
 \end{figure}
 
@@ -455,31 +475,31 @@ Analysis for the other stations shows consistent results.
 
 \begin{multicols}{2}
 The observed precipitation quantile drop at high temperatures can be due to small sample sizes at high temperatures.
-It may thus not be suitable to assume a decrease at high temperatures as a meteorological boundary.
+Thus it may not be suitable to assume a decrease at high temperatures as a meteorological boundary.
 Alternative explanations should still be researched, however.
 Some were summarized briefly in section~\ref{sec:background}.
-It might also, for example, be hypothesized that near surface temperature is not an adequate proxy for air temperature in the height where precipitation forming patterns unfold on very warm days.
+It might also, for example, be hypothesized that near surface temperature is not an adequate proxy for air temperature at the height where precipitation forming patterns unfold on very warm days.
 
-Further research could incorporate moving windows instead of fix bins to get smoother relationships and eliminate the potential effect of temperature records located exactly on a bin border.
+Further research could incorporate moving windows instead of fixed bins to get smoother relationships and eliminate the potential effect of temperature records located exactly on a bin border.
 It could also investigate our claim that bootstrapping and confidence intervals can reduce uncertainty in parametric quantile estimation.
-The type of simulations described could be a useful method to determine the necessary sample size per bin.
+The types of simulations described could be a useful method to determine the necessary sample size per bin.
 
 The distribution fitting procedure allows and mandates several choices. 
-For one thing, rain must be defined and the lower precipitation values need to be cut off at a threshold value.
+For one thing, it must be defined what minimum measurement value constitutes precipitation, below which the   values are cut off.
 After testing several cutoff points, we choose 0.5~mm/h as a good compromise between data originality and quantity on one hand, and fit quality on the other.
-With a larger cutoff, a larger proportion of the data is discarded, and the empirical 99~\%~quantile increases from 9 to 18~mm (at 0.1 and 2~mm cutoff).
+With a larger threshold, a larger proportion of the data is discarded, and the empirical 99~\%~quantile increases from 9 to 18~mm (at 0.1 and 2~mm cutoff).
 It should also be noted that different distributions are found to fit best.
-Figure~\ref{fig:cutoffeffect1} shows that with increasing cutoff points, distribution locations are shifted to higher values and the GPD has a higher relative ranking in goodness of fit (GOF).
+Figure~\ref{fig:cutoffeffect1} shows that with increasing cutoff points, distribution locations are shifted to higher values and the GPD has a higher relative ranking determined by GOF.
 The cutoff value is arbitrary and can be considered a \href{http://andrewgelman.com/2012/11/01/researcher-degrees-of-freedom}{''researcher degree of freedom''} as coined by \citet{simmons_false-positive_2011} and elaborated on by \citet{gelman_garden_2013}. 
 %The analysis results are quite sensitive to these parameters.
 
 Then some distributions must be selected, and / or a weighted average used, thus the GOF must be determined.
-Root Mean Square Error (RMSE) is a good measure for the closeness of distribution functions to the empirical distribution of the actual values.
+RMSE is a good measure for the closeness of distribution functions to the empirical distribution of the actual values.
 %, so that distributions are fit closely to high values, as the extremes are important for high quantile estimation.
 If RMSE is calculated only for the upper distribution tail, different distributions will be selected, see
 figure~\ref{fig:gofPropeffect}.
 All distributions have lower errors if fewer values are considered, which may be due to the fact that they are further off from the empirical CDF at lower values. 
-The problem is that their ranking relative to each other (right panel) changes quite rapidly in the interesting region where only the high values are considered.
+The problem is that their ranking relative to each other (right panel) changes quite rapidly in the region of interest where only the high values are considered.
 
 \end{multicols}
 
@@ -490,8 +510,8 @@ The problem is that their ranking relative to each other (right panel) changes q
 \end{figure}
 
 \begin{figure}[H] % 10
-\includegraphics[width=0.7\textwidth]{figure/10_fitdist_gofProp-effect.pdf}
-\caption[Effect of GOF-focus on dist selection]{\textit{Left panel, logscaled}: Effect of the upper proportion of ECDF used for judging goodness of fit on RMSE. \textit{Right panel}: The subsequent relative ranking of the distributions (best fitting distribution with lowest RMSE on top). The x-axis is inverted to ease understanding of the larger precipitation values being compared at lower proportions.}
+\includegraphics[width=0.71\textwidth]{figure/10_fitdist_gofProp-effect.pdf}
+\caption[Effect of GOF-focus on dist selection]{\textit{Left panel, logscaled}: RMSE dependency on the upper proportion of ECDF that is used for judging GOF. \textit{Right panel}: The subsequent relative ranking of the distributions (best fitting distribution with lowest RMSE on top). The x-axis is inverted to ease understanding of the larger precipitation values being compared at lower proportions.}
 \label{fig:gofPropeffect}
 \end{figure}
 
@@ -511,8 +531,6 @@ The results are sensitive to the distribution fitting (parameter estimation) pro
 
 
 \section{References} % 9 %%%%%%%%%%%%%%%%%%%%
-
-\todo{todo: yournal names are missing!}
 
 \begin{multicols}{2}
 %\begin{singlespace}
