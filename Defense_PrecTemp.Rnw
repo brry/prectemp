@@ -1,0 +1,1319 @@
+% PrecTemp Master Thesis Defense, May 2015
+% Berry Boessenkool, Potsdam University, Germany
+% berry-b@gmx.de
+
+% Precipitation intensity rises exponentially with temperature, as predicted by
+% the Clausius-Clapeyron relationship for air moisture.
+% Estimated quantiles in many locations worldwide show this behaviour, but
+% the relationship reverses above 15-25 degrees C (depending on climate region).
+% Meteorological boundaries have been proposed for this quantile drop.
+% Our research suggest this may also be due to small sample sizes.
+
+% ToDo: Compare  \onslide vs. \visible vs. \only
+% http://tex.stackexchange.com/questions/80495
+
+\documentclass{beamer}
+% \usetheme{PaloAlto}
+% \setbeamertemplate{footline}{}
+% \setbeamersize{sidebar width left=1cm}
+\setbeamerfont{frametitle}{size=\normalsize}
+
+\usepackage{animate, hyperref, xcolor, graphicx, tikz, media9, ifthen}
+\usepackage[absolute,overlay]{textpos}
+\hypersetup{colorlinks=true, linkcolor=cyan, urlcolor=blue}
+\beamertemplatenavigationsymbolsempty
+\beamersetleftmargin{0.5cm}
+\beamersetrightmargin{0.5cm}
+\let\Tiny=\tiny % avoid warning: Font shape `OT1/cmss/m/n' in size <4> not available. size <5> substituted on input line
+
+
+\newcommand{\animskipQemp}{\begin{flushleft} \hyperlink{animQemp_end}{\small{Skip animation}} \end{flushleft}}
+\newcommand{\animskipQwak}{\begin{flushleft} \hyperlink{animQwak_end}{\small{Skip animation}} \end{flushleft}}
+\newcommand{\animskipTemp}{\begin{flushleft} \hyperlink{animTemp_end}{\small{Skip animation}} \end{flushleft}}
+\newcommand{\animskipDist}{\begin{flushleft} \hyperlink{animDist_end}{\small{Skip animation}} \end{flushleft}}
+
+
+% Stuff for bottom navigation bar %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% format of active section: textcolor red
+\newcommand{\collink}[3]{% ARGS: label, text for navigation bar, T/F for red
+\hyperlink{#1}{\ifthenelse{\equal{#3}{T}} {\textcolor{red}{#2}} {#2}}}
+
+%%% List of section labels and names, separation with comma, further customizing possible
+% in default macros, number of arguments can be max 9. thus you can have max 9 bottomnavigation sections
+\newcommand{\highlight}[9]{\collink{sec_motiv}{Motivation}{#1}, \collink{sec_Data}{Data}{#2}, 
+\collink{sec_Qemp}{Empirical q.}{#3}, \collink{sec_dist}{Distributions}{#4}, \collink{sec_Ssize}{Sample size}{#5}}
+
+% This next part is not elegant...
+\newcommand{\bottomnavigator}[1]{ % ARGUMENT: number of current section 
+\ifcase#1
+\or \highlight{T}{F}{F}{F}{F}{F}{F}{F}{F}
+\or \highlight{F}{T}{F}{F}{F}{F}{F}{F}{F}
+\or \highlight{F}{F}{T}{F}{F}{F}{F}{F}{F}
+\or \highlight{F}{F}{F}{T}{F}{F}{F}{F}{F}
+\or \highlight{F}{F}{F}{F}{T}{F}{F}{F}{F}
+\or \highlight{F}{F}{F}{F}{F}{T}{F}{F}{F}
+\or \highlight{F}{F}{F}{F}{F}{F}{T}{F}{F}
+\or \highlight{F}{F}{F}{F}{F}{F}{F}{T}{F}
+\or \highlight{F}{F}{F}{F}{F}{F}{F}{F}{T}
+\else
+\highlight{F}{F}{F}{F}{F}{F}{F}{F}{F}
+\fi
+}
+
+% Create Navigation Panel at the bottom of the slides, adjusted to the right
+\newcommand{\slidenum}[4]{ % ARGS: previous slide label, current slide number, next slide label, current section number
+\begin{textblock*}{\paperwidth}(0pt,.91\textheight) 
+\begin{flushright} \scriptsize 
+\textit{Boessenkool, 2015} ~ \bottomnavigator{#4} ~ \hyperlink{#1}{\beamerreturnbutton{}} #2/14 \hyperlink{#3}{\beamergotobutton{}}~~~ 
+\normalsize
+\end{flushright} 
+\end{textblock*}
+}
+
+
+% ACTUAL SLIDES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+\centering
+
+\section{Introduction}
+
+
+% ---------------------------
+\begin{frame}
+\label{s0}
+\Large
+\textbf{Why you need an umbrella on hot days}\\[0.5em]
+\normalsize
+\includegraphics[width=0.7\textwidth]{figure/umbrella.jpg}\\[0.5em]
+Master thesis defense Berry Boessenkool, May 2015\\[0.5em]
+\footnotesize Title: Statistical Analysis of Temperature Effects on Extreme Precipitation Intensities\\[0.5em]
+Supervisors: Dr. Maik Heistermann, Dr. Gerd B\"urger\\[0.5em]
+\normalsize
+% \hyperlink{metadata}{More metadata}
+\end{frame}
+% ---------------------------
+
+
+% Next Slide: 1 overview
+
+
+% ---------------------------
+\begin{frame}\frametitle{Overview}
+\label{s1}
+\slidenum{s0}{1}{s2}{9}
+\begin{itemize}[<+->] % \onslide<2->
+  \item Motivation
+  \item Data, quantiles, logtransformation
+  \item State of research (empirical precipitation quantiles)
+  \begin{itemize}[<+->] 
+     \item Statistical artefact: sample size dependency
+  \end{itemize}
+  \item Parametrical method for quantile estimation
+  \begin{itemize}[<+->] 
+     \item Fit distributions
+     \item Simulations to quantify sample size effect
+  \end{itemize}
+\end{itemize}
+\end{frame}
+% ---------------------------
+
+
+\section{Motivation}
+\label{sec_motiv}
+
+% Next Slide: 2 motiv I
+
+
+% ---------------------------
+\begin{frame}\frametitle{Motivation: Flash floods}
+\label{s2}
+\slidenum{s1}{2}{s3}{1}
+India, Indore, Patalpani waterfall\\[0.1em]
+\includegraphics[height=0.480\linewidth]{figure/IndiaMap.JPG}\\[0.1em]
+% Patalpani waterfall is a famous picnic spot near Indore, and the Rathi family members, who had gone there to enjoy a quiet Sunday, had no inkling of a disaster awaiting them.
+% The water current caught all the five people & three of them Chhavi, Chandrashekhar & Mudita drowned, while local people rescued Mudita's brother and another youth.
+% The video was taken by local tourist Gaurav Patidar.
+% \href{https://www.youtube.com/watch?v=ptH1AMUVro4}{Patalpani Accident, Indore India}\\ 
+% \href{https://www.youtube.com/watch?v=M2MppXyJuKg}{Tragic Patalpani Accident In Indore, India } Subtitles\\
+\onslide<2->
+famous picnic spot \onslide<3-> ~ 2011: Flash flood\\
+\onslide<4->
+\textit{small scale, sudden, dangerous} (\href{run:figure/flashfloods.pdf}{Boessenkool, 2013})\\
+\end{frame}
+% ---------------------------
+
+
+% Next Slide: 2 motiv II
+
+
+% ---------------------------
+\begin{frame}\frametitle{Motivation: Flash floods}
+\slidenum{s1}{2}{s3}{1}
+\includemedia[
+  width=0.854\linewidth,
+  height=0.480\linewidth,
+  activate=pageopen,
+  addresource=figure/flash flood.mp4,
+  flashvars={source=figure/flash flood.mp4}
+]{}{VPlayer.swf}\\
+\href{run:figure/flash flood.mp4}{\scriptsize{Open video in external viewer}}\\  
+\href{https://www.youtube.com/watch?v=O5SyBTy6j24}{\scriptsize{Watch complete video on youtube}}\\
+\end{frame}
+% ---------------------------
+
+
+\section{Data}
+\label{sec_Data}
+
+% Next Slide: 3 Data
+
+
+% ---------------------------
+\begin{frame}\frametitle{For once, we don't complain about data shortage}
+\slidenum{s2}{3}{s4}{2}
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{For once, we don't complain about data shortage}
+\slidenum{s2}{3}{s4}{2}
+<<defQemp1, out.width='0.9\\textwidth', eval=TRUE, echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+load("1_dat.Rdata")
+load("2_dat_binN_binQ_intervals_mid.Rdata")
+library(berryFunctions)
+library(extremeStat)
+source("1_PrecTemp-CC.R") # transp, col, probs, intervals, mid, cc_lines
+
+Qemp <- function(n){
+par(mar=c(3,1.8,1.5,0.5), mgp=c(1.8,0.5,0))
+if(n %in% 1:3){
+plot(dat$temp, dat$prec, ylab="Precipitation [mm/h]", xlab="", xaxt="n",
+     yaxs="i", ylim=c(1.6, 45), type="n", xlim=c(0,30), xaxs="i", las=1)
+mtext("Precipitation [mm/h]", line=-1, adj=0.03, outer=T)
+if(n==1) return()
+
+title(xlab="Daily average temperature  [°C]")
+axis(1,c(0,10,20,30))
+if(n==2) return()
+
+points(dat$temp, dat$prec, col=transp, pch=16, cex=1)
+box()
+if(n==3) return()
+}
+
+plot(dat$temp, dat$prec, ylab="Precipitation [mm/h]  (logscale)", xlab="", yaxt="n", xaxt="n",
+     yaxs="i", ylim=c(1.6, 45), type="n", xlim=c(0,30), xaxs="i", log="y")
+mtext("Precipitation [mm/h]  (logscale)", line=-1, adj=0.03, outer=T)
+logAxis(side=2, mgp=c(2.3,0.7,0) )
+title(xlab="Daily average temperature  [°C]")
+axis(1,c(0,10,20,30))
+points(dat$temp, dat$prec, col=transp, pch=16, cex=1)
+box()
+if(n==4) return()
+# noNAdat <- na.omit(dat[dat$prec>0, c("temp","prec")])
+# noNAdat$prec <- log10(noNAdat$prec )
+# indexhull <- chull(noNAdat)
+# indexhull <- c(indexhull, indexhull[1])
+# noNAdat$prec <- 10^noNAdat$prec
+# if(n==4)lines(noNAdat[indexhull,], col=1)
+
+
+abline(v=intervals, col=8)
+box()
+if(n==5) return()
+
+# 99.9% quantile
+if(n==6) legend("topleft", "99.9 % Quantile", pch=3+14, col=col[3], bg="white", lty=1)
+## plot quantiles only for bins with more than 25 values:
+Sel <- binN > 25  # n-based Selection
+for(q in 3) points(mid[Sel], binQ[q,Sel], col=col[q], pch=q+14, type="o", cex=1, lwd=2)
+if(n==6) return()
+
+# CC:
+if(n %in% 7) legend("topleft", c("99.9 % Quantile", "VPsat [hPa]"), 
+                       pch=c(3+14,NA), col=c(col[3], 1), bg="white", lty=1)
+cc_lines(NA)
+if(n==7) return()
+
+# Other quantiles:
+legend("topleft", c("99.99 %Q","99.9","99","90", "VPsat [hPa]", "CC-rate"),
+       pch=c(4:1+14, NA, NA), col=c(rev(col),1,1), bg="white",
+       lty=c(rep(1,5),3), inset=c(0, 0), cex=0.75)
+for(q in 4:3) points(mid[Sel], binQ[q,Sel], col=col[q], pch=q+14, type="o",
+                       cex=1, lwd=2)
+if(n==8) return()
+
+for(q in 2) points(mid[Sel], binQ[q,Sel], col=col[q], pch=q+14, type="o",
+                       cex=1, lwd=2)
+cc_lines(3.5)
+if(n==9) return()
+
+for(q in 1) points(mid[Sel], binQ[q,Sel], col=col[q], pch=q+14, type="o",
+                       cex=1, lwd=2)
+cc_lines(1.5)
+if(n==10) return()
+
+
+textField(15, 5, "High precipitation quantiles drop at high temperatures", 
+          fill=addAlpha("white", 0.9), field="round")
+if(n==11) return()
+
+textField(15, 3.684, "Dependency on sample size?", fill=addAlpha("white", 0.9), field="round")
+if(n==12) return()
+
+# write number of values per bin
+textField(mid, c(1.8, 1.95), binN, cex=0.8, quiet=T)
+if(n==13) return()
+
+
+textField(15, 2.714, "Distribution (fitted to rainfall dataset)", fill=addAlpha("white", 0.9), field="round")
+if(n==14) return()
+
+textField(15, 2, "Generate random samples of different sizes", fill=addAlpha("white", 0.9), field="round")
+if(n==15) return()
+}
+dummy <- Qemp(1)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{For once, we don't complain about data shortage}
+\slidenum{s2}{3}{s4}{2}
+<<defQemp2, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(2)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{For once, we don't complain about data shortage}
+\label{s3}
+\slidenum{s2}{3}{s4}{2}
+<<defQemp3, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(3)
+@
+%\begin{textblock*}{0.15\textwidth}(0.8\textwidth, 0.23\textheight)
+%\onslide<2>{\textblockcolour{red} Textbox: Data\\[0.5em] }
+%\end{textblock*}
+\end{frame}
+% ---------------------------
+
+% next slide: 4 data
+
+
+\begin{frame}\frametitle{For once, we don't complain about data shortage}
+\label{s4}
+\slidenum{s3}{4}{s5}{2}
+\begin{flushleft}
+\textbf{Data}: 60 years long time series of 14 stations across Germany\\
+Summer data from May to September, 1951-2010\\
+\onslide<2->  Figures here refer to Potsdam (52:23~$^{\circ}$N,  13:04~$^{\circ}$E,  81~m asl.)\\[1em]
+\onslide<3-> \textbf{Source}: German Weather Service (DWD)\\[1em]
+\onslide<4-> \textbf{hourly rainfall depth}: recorded by Hellmann gauges, resolution: 1/10~mm. Values below 0.5~mm/h were discarded, see \href{https://github.com/brry/prectemp}{thesis} for details.\\[1em]
+\onslide<5-> \textbf{daily temperature average}: computed from hourly measurements at 2~m above ground\\
+\end{flushleft}
+\end{frame}
+% ---------------------------
+
+\section{Logtransformation}
+
+% next slide: 5 Logtransform (hist)
+
+% ---------------------------
+\begin{frame}\frametitle{Logtransformation is the best thing since sliced bread}
+\slidenum{s4}{5}{s6}{2}
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Logtransformation is the best thing since sliced bread - Reason 1}
+\slidenum{s4}{5}{s6}{2}
+<<defQemp_hist0, out.width='0.9\\textwidth', echo=FALSE, cache=F, fig.height=3.3, fig.width=5>>=
+par(mar=c(3,2.5,1.5,0.5), mgp=c(1.8,0.5,0))
+hh <- hist(dat[dat$prec>0.5, "prec"], border=NA, breaks=30, las=1, ylab="", 
+     xlab="Precipitation [mm/h]", main="", yaxs="i", xaxs="i")
+mtext("Number of records per value range", line=-1, adj=0.03, outer=T)
+abline(v=hh$breaks, col=8)
+axis(1, labels=F); axis(2, labels=F)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Logtransformation is the best thing since sliced bread - Reason 1}
+\label{s5}
+\slidenum{s4}{5}{s6}{2}
+<<defQemp_hist, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+par(mar=c(3,2.5,1.5,0.5), mgp=c(1.8,0.5,0))
+hist(dat[dat$prec>0.5, "prec"], col="blue", breaks=30, las=1, ylab="", 
+     xlab="Precipitation [mm/h]", main="", yaxs="i", xaxs="i")
+mtext("Number of records per value range", line=-1, adj=0.03, outer=T)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Logtransformation is the best thing since sliced bread - Reason 1}
+\slidenum{s4}{5}{s6}{2}
+<<defQemp_anim, eval=F, cache=TRUE, message=FALSE, warning=FALSE, echo=FALSE>>=
+library(animation)
+#   source("1_PrecTemp-CC.R"); load("1_dat.Rdata")
+dat2 <- dat[dat$prec>0.5, ]
+# histogram
+unlink("figure/linlog_hist.mp4")
+saveVideo(linLogHist(dat2$prec, xlab="Precipitation  [mm/h]", breaks=30, xlim=c(0.5, 40), 
+   axisargs=list(base=c(1,2,5), from=), steps=200, write_t=F, yaxt="n", freq=FALSE, main="",
+   parexpr='par(mar=c(2,0.5,1.5,0.5), mgp=c(1.8,1,0), cex=4)',
+   endexpr='mtext("Probability Density", line=-1.2, adj=0.03, outer=T, cex=4)'),
+video.name = "figure/linlog_hist.mp4", interval=0.015, ani.width=1270, ani.height=836,
+ffmpeg="C:/ffmpeg-20150424-git-cd69c0e-win64-static/bin/ffmpeg.exe")
+
+# Scatterplot
+unlink("figure/linlog_anim.mp4")
+saveVideo(linLogTrans(dat2$temp, dat2$prec, log="y", xlab="Temperature", ylab="Rainfall Intensity",  
+          parexpr='par(mar=c(3,3,0.5,0.5), mgp=c(2.1, 0.8, 0), cex=3)', base=c(1,2,5), write_t=F,
+          pointsarg=list(col=transp, pch=16, cex=0.8), steps=300),
+video.name = "figure/linlog_anim.mp4", interval=0.01, ani.width=1270, ani.height=836,
+ffmpeg="C:/ffmpeg-20150424-git-cd69c0e-win64-static/bin/ffmpeg.exe")
+@
+\includemedia[
+  width=0.836\linewidth,
+  height=0.55\linewidth,
+  activate=pageopen,
+  addresource=figure/linlog_hist.mp4,
+  flashvars={source=figure/linlog_hist.mp4}
+]{}{VPlayer.swf}\\
+\href{run:figure/linlog_hist.mp4}{\scriptsize{Open histogram animation in external viewer}}\\  
+\scriptsize{credits: \href{http://ffmpeg.org/download.html}{FFmpeg} + R package \href{http://yihui.name/animation/}{animation} (Yihui)}\\
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Logtransformation is the best thing since sliced bread - Reason 1}
+\slidenum{s4}{5}{s6}{2}
+<<defQemp_histlog, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+library(berryFunctions)
+defQemp_histlog <- function(n){
+par(mar=c(3,2.5,1.5,0.5), mgp=c(1.8,0.5,0))
+hist(log10(dat[dat$prec>0.5, "prec"]), col="blue", breaks=30, las=1, ylab="", 
+     xlab="Precipitation [mm/h]  (logscaled)", main="", xaxt="n")#yaxs="i", xaxs="i")
+logAxis()
+hist(log10(dat[dat$prec>0.5, "prec"]), col="blue", breaks=30, add=TRUE)
+mtext("Number of records per value group", line=-1, adj=0.03, outer=T)
+if(n==1) return()
+textField(0.6, 500, "90% Quantile", fill=addAlpha("white", 0.9), col=2, field="round")
+if(n==2) textField(0.6, 350, "Value that is exceeded in 10 % of cases.\nCan also be called percentile.", fill=addAlpha("white", 0.9), field="round", mar=0.7)
+if(n==2) return()
+if(n==3) textField(0.6, 350, "Empirical quantile:\nsample quantiles based on order statistics", fill=addAlpha("white", 0.9), field="round", mar=1)
+if(n==3) return()
+textField(0.15, 100, "90 % of values < Q_0.9", fill=addAlpha("white", 0.9), col=2, field="round")
+if(n==4) return()
+abline(v=quantileMean(log10(dat[dat$prec>0.5, "prec"]), prob=0.9), col=2, lwd=3)
+textField(0.6, 500, "90% Quantile", fill=addAlpha("white", 0.9), col=2, field="round")
+if(n==5) return()
+#textField(0.6, 500, "90% Quantile = 10 ^ 0.6", fill=addAlpha("white", 1), col=2, field="round")
+if(n==6) return()
+#textField(1.1, 100, "10 % of values", fill=addAlpha("white", 0.9), col=2, field="round")
+if(n==7) return()
+abline(v=quantileMean(log10(dat[dat$prec>0.5, "prec"]), prob=0.95), col="orange", lwd=3)
+textField(0.8, 400, "Q 95%", fill=addAlpha("white", 1), col="orange", field="round")
+textField(0.6, 500, "90% Quantile", fill=addAlpha("white", 0.9), col=2, field="round")
+if(n==8) return()
+abline(v=quantileMean(log10(dat[dat$prec>0.5, "prec"]), prob=0.999), col="purple", lwd=3)
+textField(1.4, 300, "Q 99.9%", fill=addAlpha("white", 1), col="purple", field="round")
+if(n==9) return()
+textField(1.4, 300, "8 values\n> Q 99.9%", fill=addAlpha("white", 1), col="purple", field="round")
+}
+dummy <- defQemp_histlog(1)
+@
+\end{frame}
+
+
+\section{Quantile explanation}
+% next slide: 6 Quantile explanation
+
+% ---------------------------
+\begin{frame}\frametitle{Quantile explanation}
+\slidenum{s5}{6}{s7}{2}
+<<defQemp_histlog1b, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- defQemp_histlog(1)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Quantile explanation}
+\slidenum{s5}{6}{s7}{2}
+<<defQemp_histlog2, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- defQemp_histlog(2)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Quantile explanation}
+\slidenum{s5}{6}{s7}{2}
+<<defQemp_histlog3, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- defQemp_histlog(3)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Quantile explanation}
+\slidenum{s5}{6}{s7}{2}
+<<defQemp_histlog4, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- defQemp_histlog(4)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Quantile explanation}
+\slidenum{s5}{6}{s7}{2}
+<<defQemp_histlog5, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- defQemp_histlog(5)
+@
+\end{frame}
+% ---------------------------
+% \begin{frame}\frametitle{Quantile explanation}
+% \slidenum{s5}{6}{s7}{2}
+% <<defQemp_histlog6, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+% dummy <- defQemp_histlog(6)
+% @
+% \end{frame}
+% ---------------------------
+% \begin{frame}\frametitle{Quantile explanation}
+% \slidenum{s5}{6}{s7}{2}
+% <<defQemp_histlog7, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+% dummy <- defQemp_histlog(7)
+% @
+% \end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Quantile explanation}
+\slidenum{s5}{6}{s7}{2}
+<<defQemp_histlog8, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- defQemp_histlog(8)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Quantile explanation}
+\slidenum{s5}{6}{s7}{2}
+<<defQemp_histlog9, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- defQemp_histlog(9)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Quantile explanation}
+\label{s6}
+\slidenum{s5}{6}{s7}{2}
+<<defQemp_histlog10, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- defQemp_histlog(10)
+@
+\begin{textblock*}{0.15\textwidth}(0.8\textwidth, 0.23\textheight)
+\onslide<2>{\includegraphics[width=1\textwidth]{figure/umbrella2.png}\\[0.5em]}
+\end{textblock*}
+\end{frame}
+
+
+\section{Logtransform rates}
+% next slide: 7 logtransform (rates)
+
+% ---------------------------
+\begin{frame}\frametitle{Logtransformation is the best thing since sliced bread - Reason 2}
+\slidenum{s6}{7}{s8}{2}
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Logtransformation is the best thing since sliced bread - Reason 2}
+\slidenum{s6}{7}{s8}{2}
+It's the only way to compare rates of change.
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Logtransformation is the best thing since sliced bread - Reason 2}
+\slidenum{s6}{7}{s8}{2}
+<<logtransrates1, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+par(mfrow=c(1,2), mar=c(0.5, 2.5, 0.5, 0.5), mgp=c(3,0.8,0))
+plot(1:2, ylim=c(0,100), type="n", xaxt="n", las=1, xlab="", ylab="")
+segments(x0=1, x1=2, y0=c(2,20,50), y1=c(4,40,100))
+text(1.2, c(9,30,70), c(2,20,50)); text(1.8, c(9,30,70), c(4,40,100))
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Logtransformation is the best thing since sliced bread - Reason 2}
+\label{s7}
+\slidenum{s6}{7}{s8}{2}
+<<logtransrates2, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+par(mfrow=c(1,2), mar=c(0.5, 2.5, 0.5, 0.5), mgp=c(3,0.8,0))
+plot(1:2, ylim=c(0,100), type="n", xaxt="n", las=1, xlab="", ylab="")
+segments(x0=1, x1=2, y0=c(2,20,50), y1=c(4,40,100))
+text(1.2, c(9,30,70), c(2,20,50)); text(1.8, c(9,30,70), c(4,40,100))
+plot(1:2, ylim=c(1,100), type="n", xaxt="n", las=1, xlab="", ylab="", log="y", yaxt="n")
+logAxis(2)
+segments(x0=1, x1=2, y0=c(2,20,50), y1=c(4,40,100))
+textField(1.5, 10, "slope is comparable\nacross several\norders of magnitudes", fill=addAlpha("white", 1), col="green3", field="round")
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Logtransformation is the best thing since sliced bread - Reason 2}
+\slidenum{s6}{7}{s8}{2}
+<<defQemp3b, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(3)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Logtransformation is the best thing since sliced bread - Reason 2}
+\slidenum{s6}{7}{s8}{2}
+\includemedia[
+  width=0.836\linewidth,
+  height=0.55\linewidth,
+  activate=pageopen,
+  addresource=figure/linlog_anim.mp4,
+  flashvars={source=figure/linlog_anim.mp4}
+]{}{VPlayer.swf}\\
+\href{run:figure/linlog_anim.mp4}{\scriptsize{Open scatterplot animation in external viewer}}\\  
+\scriptsize{credits: \href{http://ffmpeg.org/download.html}{FFmpeg} + R package \href{http://yihui.name/animation/}{animation} (Yihui)}\\
+\end{frame}
+% ---------------------------
+% \begin{frame}\frametitle{Logtransformation is the best thing since sliced bread - Reason 2}
+% \label{animQemp_begin}
+% \slidenum{s6}{7}{s8}{2}
+% <<defQemp3c, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+% dummy <- Qemp(3)
+% @
+% % \animskipQemp
+% \end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Logtransformation is the best thing since sliced bread - Reason 2}
+\slidenum{s6}{7}{s8}{2}
+<<defQemp4, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(4)
+@
+% \animskipQemp
+\end{frame}
+% ---------------------------
+
+
+\section{empirical Quantiles}
+\label{sec_Qemp}
+
+% Next Slide: 8 Qemp
+
+
+% ---------------------------
+\begin{frame}\frametitle{High precipitation quantiles drop at high temperatures}
+\slidenum{s7}{8}{s9}{3}
+<<defQemp4b, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(4)
+@
+% \animskipQemp
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{High precipitation quantiles drop at high temperatures}
+\slidenum{s7}{8}{s9}{3}
+<<defQemp5, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(5)
+@
+% \animskipQemp
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{High precipitation quantiles drop at high temperatures}
+\slidenum{s7}{8}{s9}{3}
+<<defQemp6, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(6)
+@
+% \animskipQemp
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{High precipitation quantiles drop at high temperatures}
+\slidenum{s7}{8}{s9}{3}
+<<defQemp7, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(7)
+@
+% \animskipQemp
+\begin{textblock*}{0.95\textwidth}(0.1\textwidth, 0.4\textheight) % \colorbox{white}{
+\onslide<2->{\colorbox{white}{VPsat: Clausius-Clapeyron governed \textbf{sat}urated \textbf{V}apor \textbf{P}ressure.}}\\
+\onslide<3->{\colorbox{white}{Assuming constant relative humidity, it is analogous to}}\\[-0.3em]
+\onslide<3->{\colorbox{white}{atmospheric precipitable water content (max moisture content).}}\\
+\onslide<4->{\colorbox{white}{August-Roche-Magnus approximation:}}\\[-2em]
+\onslide<5->{\begin{equation*} \colorbox{white}{\ensuremath{VPsat = 6.1094 * exp\left(\frac{17.625*temp}{temp+243.04}\right)}} \end{equation*}}
+\end{textblock*}
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{High precipitation quantiles drop at high temperatures}
+\slidenum{s7}{8}{s9}{3}
+<<defQemp7b, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(7)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{High precipitation quantiles drop at high temperatures}
+\slidenum{s7}{8}{s9}{3}
+<<defQemp8, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(8)
+@
+% \animskipQemp
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{High precipitation quantiles drop at high temperatures}
+\slidenum{s7}{8}{s9}{3}
+<<defQemp9, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(9)
+@
+% \animskipQemp
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{High precipitation quantiles drop at high temperatures}
+\slidenum{s7}{8}{s9}{3}
+<<defQemp10, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(10)
+@
+% \animskipQemp
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{High precipitation quantiles drop at high temperatures}
+\slidenum{s7}{8}{s9}{3}
+<<defQemp11, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(11)
+@
+% \animskipQemp
+\begin{textblock*}{0.15\textwidth}(0.8\textwidth, 0.23\textheight)
+\onslide<2>{\includegraphics[width=1\textwidth]{figure/umbrella3.png}\\[0.5em]}
+\end{textblock*}
+\begin{textblock*}{0.15\textwidth}(0.8\textwidth, 0.23\textheight)
+\onslide<3>{\includegraphics[width=1\textwidth]{figure/sun.jpg}\\[0.5em]}
+\end{textblock*}
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{High precipitation quantiles drop at high temperatures}
+\slidenum{s7}{8}{s9}{3}
+<<defQemp12, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(12)
+@
+% \animskipQemp
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{High precipitation quantiles drop at high temperatures}
+\slidenum{s7}{8}{s9}{3}
+<<defQemp13, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(13)
+@
+% \animskipQemp
+\begin{textblock*}{0.15\textwidth}(0.8\textwidth, 0.23\textheight)
+\onslide<2>{\includegraphics[width=1\textwidth]{figure/umbrella2.png}\\[0.5em]}
+\end{textblock*}
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{High precipitation quantiles drop at high temperatures}
+\slidenum{s7}{8}{s9}{3}
+<<defQemp14, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(14)
+@
+% \animskipQemp
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{High precipitation quantiles drop at high temperatures}
+\label{s8}
+\label{animQemp_end}
+\slidenum{s7}{8}{s9}{3}
+<<defQemp15, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(15)
+@
+% \begin{flushleft} \hyperlink{animQemp_begin}{\small{Begin animation}} \end{flushleft}
+\end{frame}
+% ---------------------------
+
+
+\section{Distributions}
+\label{sec_dist}
+
+% Next Slide: 9 distfit I
+
+
+% ---------------------------
+\begin{frame}\frametitle{Distributions must be fitted carefully}
+\slidenum{s8}{9}{s10}{4}
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Distributions must be fitted carefully}
+\slidenum{s8}{9}{s10}{4}
+<<defdistfit1, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, warning=F, message=F, fig.height=3.3, fig.width=5>>=
+load("1_dat.Rdata")
+source("1_PrecTemp-CC.R") # transp, col, probs, intervals, mid, cc_lines
+library(berryFunctions) # quantileMean, logAxis, functions in extremeStat
+library(extremeStat) # distLfit, distLplot
+library(lmomco) # qlmomco
+library(pbapply)
+nbest <- 8
+logPrec <- log10(dat[dat$prec > 0.5 , "prec"])
+dlf <- distLfit(logPrec, gofProp=0.1, plot=F, progbars=F)
+
+distfit <- function(n){
+par(mar=c(3,1.8,1.5,0.7), mgp=c(1.7,0.6,0))
+# select best fits only by RMSE of upper 5% of data
+distLplot(dlf, log=TRUE, nbest=0, main="", xlab="Precipitation  [mm/h]",
+             ylab="", legargs=list(bg="white", cex=1), percentargs=c(lwd=2, lty=2),
+             logargs=c(allticks=TRUE, lcol=NA), percentline=FALSE )
+if(n==1) mtext("Empirical Probability Density (Histogram)", line=-1, adj=0.03, outer=T)
+if(n==1) return()
+mtext("Probability Density Function (PDF)", line=-1, adj=0.03, outer=T)  
+customdistLplot <- function(i){ distLplot(dlf, nbest=i, add=T, legargs=list(bg="white", cex=1), 
+                                          coldist=rainbow2(8)[1:i], percentline=FALSE); box()}
+customdistLplot(1); if(n==2) return()
+customdistLplot(2); if(n==3) return()
+customdistLplot(3); if(n==4) return()
+customdistLplot(4); if(n==5) return()
+customdistLplot(5); if(n==6) return()
+customdistLplot(6); if(n==7) return()
+customdistLplot(7); if(n==8) return()
+customdistLplot(8); if(n==9) return()
+rect(xleft=0.6, ybottom=0, xright=2, ytop=0.09, border="purple", col=addAlpha("purple"))
+box()
+}
+
+dummy <- distfit(1)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Distributions must be fitted carefully}
+\slidenum{s8}{9}{s10}{4}
+<<defdistfit2, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, warning=F, message=F, fig.height=3.3, fig.width=5>>=
+dummy <- distfit(2)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Distributions must be fitted carefully}
+\slidenum{s8}{9}{s10}{4}
+<<defdistfit3, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, warning=F, message=F, fig.height=3.3, fig.width=5>>=
+dummy <- distfit(3)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Distributions must be fitted carefully}
+\slidenum{s8}{9}{s10}{4}
+<<defdistfit4, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, warning=F, message=F, fig.height=3.3, fig.width=5>>=
+dummy <- distfit(4)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Distributions must be fitted carefully}
+\slidenum{s8}{9}{s10}{4}
+<<defdistfit5, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, warning=F, message=F, fig.height=3.3, fig.width=5>>=
+dummy <- distfit(5)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Distributions must be fitted carefully}
+\slidenum{s8}{9}{s10}{4}
+<<defdistfit6, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, warning=F, message=F, fig.height=3.3, fig.width=5>>=
+dummy <- distfit(6)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Distributions must be fitted carefully}
+\slidenum{s8}{9}{s10}{4}
+<<defdistfit7, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, warning=F, message=F, fig.height=3.3, fig.width=5>>=
+dummy <- distfit(7)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Distributions must be fitted carefully}
+\slidenum{s8}{9}{s10}{4}
+<<defdistfit8, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, warning=F, message=F, fig.height=3.3, fig.width=5>>=
+dummy <- distfit(8)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Distributions must be fitted carefully}
+\slidenum{s8}{9}{s10}{4}
+<<defdistfit9, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, warning=F, message=F, fig.height=3.3, fig.width=5>>=
+dummy <- distfit(9)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Distributions must be fitted carefully}
+\label{s9}
+\slidenum{s8}{9}{s10}{4}
+<<defdistfit10, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, warning=F, message=F, fig.height=3.3, fig.width=5>>=
+dummy <- distfit(10)
+@
+\end{frame}
+% ---------------------------
+
+
+% Next Slide: 10 distfit II
+
+
+% ---------------------------
+\begin{frame}\frametitle{Distributions must be fitted carefully}
+\label{s10}
+\slidenum{s9}{10}{s11}{4}
+<<defdist2, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, warning=F, message=F, fig.height=3.3, fig.width=5>>=
+# focus on tail
+par(mar=c(3,2.8,1.5,0.7), mgp=c(1.7,0.6,0))
+tquan <- distLquantile(dlf=dlf, probs=0.999, plot=TRUE, breaks=20, xlim=c(0.6,2),
+           ylim=c(0,0.09), nbest=nbest, log=TRUE, main="", percentline=FALSE,
+           legargs=list(bg="white", cex=1), percentargs=c(lwd=2, lty=2), progbars=F,
+           linargs=c(lwd=2), logargs=c(allticks=TRUE, lcol=NA), ylab="", 
+           xlab="Precipitation  [mm/h]")
+mtext("Probability Density Function (PDF)", line=-1, adj=0.03, outer=T)
+box()
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Distributions must be fitted carefully}
+\slidenum{s9}{10}{s11}{4}
+Extreme value statistics to the rescue!
+\end{frame}
+% ---------------------------
+
+
+% Next Slide: 11 distfit III
+
+
+% ---------------------------
+\begin{frame}\frametitle{Distributions must be fitted carefully}
+\label{s11}
+\slidenum{s10}{11}{s12}{4}
+<<defdist3, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, warning=F, message=F, fig.height=3.3, fig.width=5>>=
+# truncated data
+par(mar=c(3,2.2,1.5,0.7), mgp=c(1.7,0.6,0))
+tquan <- distLquantile(dlf=dlf, truncate=0.9, probs=0.999, plot=TRUE, log=TRUE, ylab="",
+           nbest=nbest, legargs=list(bg="white", cex=1), 
+           xlab="Precipitation  [mm/h]  truncated to top 10%",
+           linargs=c(lwd=2), logargs=c(allticks=TRUE, lcol=NA), main="")
+mtext("Probability Density Function (PDF)", line=-1, adj=0.03, outer=T)
+box()
+@
+\begin{textblock*}{0.95\textwidth}(0.1\textwidth, 0.35\textheight) % \colorbox{white}{
+\onslide<2->{\colorbox{white}{\textbf{Censored quantile}: quantile of the highest values of a sample}}\\[-0.3em]
+\onslide<2->{\colorbox{white}{(also called truncated quantile)}}\\
+\onslide<3->{\colorbox{white}{Probability value must be corrected:}}\\[-0.3em]
+\onslide<3->{\colorbox{white}{$Q_{0.95}$ of top 20~\% describes $Q_{0.99}$ of full sample.}}
+\end{textblock*}
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Distributions must be fitted carefully}
+\slidenum{s10}{11}{s12}{4}
+Science should strive for reproducibility:
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{R Code available on \href{https://github.com/brry}{github.com/brry} ~ \tiny{\texttt{devtools::install\_github("brry/extremeStat")}} }
+\slidenum{s10}{11}{s12}{4}
+\includegraphics[width=0.85\textwidth]{figure/extremeStat_github_screenshot.JPG}\\[0.5em]
+% https://guides.github.com/activities/contributing-to-open-source/#contributing
+\end{frame}
+% ---------------------------
+
+
+\section{Sample Size}
+\label{sec_Ssize}
+
+% Next Slide: 12 Sample size simulation
+
+% ---------------------------
+\begin{frame}\frametitle{Low sample size could explain quantile drop}
+\slidenum{s11}{12}{s13}{5}
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Low sample size could explain quantile drop}
+\label{animQwak_begin}
+\slidenum{s11}{12}{s13}{5}
+<<defQwak1, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=4, fig.width=6, warning=FALSE, message=FALSE>>=
+library(RColorBrewer) # for brewer.pal
+load("5_qn_wak_200.Rdata")
+load("1_dat.Rdata")
+probs <- c(0.9, 0.95, 0.99, 0.999, 0.9999) # different from other probs!
+logPrec <- log10(dat[dat$prec>0.5, "prec"])
+dlf <- distLfit(logPrec, plot=F, ks=F, quiet=T, progbars=F)
+samplesize <- 25:1000 # samplesize <- seq(25, 1000, length=20)
+library(berryFunctions) # for quantileBands, movAv, logAxis
+library(lmomco) # for rlmomco, qlmomco
+ylim <- c(0.3, 2)
+smooth <- 15
+
+Qwak <- function(n){
+par(mar=c(3,2.0,1.5,0.4), mgp=c(1.8,0.7,0))
+layout(matrix(1:2, ncol=2), widths=c(8,7))
+# Empirical quantiles
+plot(samplesize, qn_wak[[1]][4,], type="n", ylim=ylim, xlim=lim0(980), las=1, ylab="",
+      xlab="sample size n", yaxt="n", main="")
+mtext(paste0("random sample ", probs[4]*100, "% quantile [mm/h]"), line=-1, adj=0.03, outer=T)
+logAxis(side=2)
+textField(70, 1.97, "empirical quantile", mar=0.1, adj=0)
+if(n==1) return()
+tquan <- qlmomco(probs[4], para=dlf$parameter[["wak"]])
+abline(h=tquan, lwd=2, col="purple")
+if(n==2) return()
+mat <- sapply(qn_wak, function(x) x[4+5,])
+if(n==3) { lines(samplesize, mat[,1]) ; return() }
+if(n==4) { lines(samplesize, mat[,2]) ; return() }
+if(n==5) { lines(samplesize, mat[,3]) ; return() }
+quantileBands(t(mat), smooth=smooth, probs=0:10/10, meanargs=list(col=2), border=NA,
+                x=samplesize, col=brewer.pal(9,"BuGn")[3:7], txi=NA, add=TRUE, na.rm=TRUE)
+lines(samplesize, movAv(apply(mat, 1, median, na.rm=TRUE), smooth))
+abline(h=tquan, lwd=2, col="purple")
+# Legend
+legend("bottomright", c(paste("smoothing bandwidth =", smooth),
+    paste("distribution quantile:", round(10^tquan, 1), "mm/h"), "median of 200 simulations",
+    "simulation mean (not smoothed)"), bg="white", lwd=c(NA,1,1,1), col=c(NA, "purple", 1, 2), box.col=NA, cex=0.8)
+box()
+if(n==6) return()
+# Parametric quantiles
+par(mar=c(3,0,1.5,0.4))
+plot(samplesize, qn_wak[[1]][4,], type="n", ylim=ylim, xlim=lim0(980), las=1, ylab="",
+    xlab="sample size n", yaxt="n", main="")
+#logAxis(side=2, labels=F)
+abline(h=log10(logVals()$all), col=8)
+box()
+textField(70, 1.97, "parametric quantile", mar=0.1, adj=0)
+if(n==7) return()
+mat <- sapply(qn_wak, function(x) x[4,])
+quantileBands(t(mat), smooth=smooth, probs=0:10/10, meanargs=list(col=2), border=NA,
+             x=samplesize, col=brewer.pal(9,"BuGn")[3:7], txi=NA, add=TRUE, na.rm=TRUE)
+lines(samplesize, movAv(apply(mat, 1, median, na.rm=TRUE), smooth))
+abline(h=tquan, lwd=2, col="purple")
+text(70, 1.97, "parametric", adj=0)
+box()
+}
+dummy <- Qwak(1)
+@
+% \animskipQwak
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Low sample size could explain quantile drop}
+\slidenum{s11}{12}{s13}{5}
+<<defQwak2, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, cache=TRUE, fig.height=4, fig.width=6>>=
+dummy <- Qwak(2)
+@
+% \animskipQwak
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Low sample size could explain quantile drop}
+\slidenum{s11}{12}{s13}{5}
+<<defQwak3, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=4, fig.width=6>>=
+dummy <- Qwak(3)
+@
+% \animskipQwak
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Low sample size could explain quantile drop}
+\slidenum{s11}{12}{s13}{5}
+<<defQwak4, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=4, fig.width=6>>=
+dummy <- Qwak(4)
+@
+% \animskipQwak
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Low sample size could explain quantile drop}
+\slidenum{s11}{12}{s13}{5}
+<<defQwak5, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=4, fig.width=6>>=
+dummy <- Qwak(5)
+@
+% \animskipQwak
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Low sample size could explain quantile drop}
+\slidenum{s11}{12}{s13}{5}
+<<defQwak6, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=4, fig.width=6>>=
+dummy <- Qwak(6)
+@
+% \animskipQwak
+\begin{textblock*}{0.38\textwidth}(0.6\textwidth, 0.23\textheight)
+\onslide<2>{
+  \begin{flushleft}
+  \textbf{Parametric quantile}: quantile from distribution fitted to sample\\
+  \end{flushleft} }
+\end{textblock*}
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Low sample size could explain quantile drop}
+\slidenum{s11}{12}{s13}{5}
+<<defQwak7, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=4, fig.width=6>>=
+dummy <- Qwak(7)
+@
+% \animskipQwak
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Low sample size could explain quantile drop}
+\label{s12}
+\label{animQwak_end}
+\slidenum{s11}{12}{s13}{5}
+<<defQwak8, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=4, fig.width=6>>=
+dummy <- Qwak(8)
+@
+% \begin{flushleft} \hyperlink{animQwak_begin}{\small{Begin animation}} \end{flushleft}
+\end{frame}
+% ---------------------------
+
+
+\section{Temperature dependence}
+
+% Next Slide: 13 tempdep
+
+
+% ---------------------------
+\begin{frame}\frametitle{Low sample size could explain quantile drop}
+\slidenum{s12}{13}{s14}{5}
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Low sample size could explain quantile drop}
+\label{animTemp_begin}
+\slidenum{s12}{13}{s14}{5}
+<<deftempdep1, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+load("4_wakpar_etc.Rdata")
+load("7_tempdep_500.Rdata")
+library(berryFunctions)
+tempdep <- function(n){
+par(mar=c(3,1.8,1.5,0.4), mgp=c(1.8,0.5,0))
+plot(mid, qlin, type="n", ylim=c(0.6, 1.7), yaxt="n", xaxs="i",  ylab="", xlab="",)
+mtext("Precipitation  [mm/h]", line=-1, adj=0.03, outer=T)
+title(xlab="Temperature  [°C]", mgp=c(1.5,1,0), xpd=NA )
+logAxis(2)
+# CC rate:
+temp <- seq(-8,32, len=100)
+lines(temp, log10( 6.1094*exp(17.625*temp/(temp+243.04))), col=1)
+if(n==1) legend("topleft", "CC-scaling", lty=1, col=1, bg="white")
+if(n==1) return()
+# Distribution theoretical quantiles
+lines(mid, qlin, col=2, lwd=3)
+if(n==2) legend("topleft", c("CC-scaling","Distribution Q99.9%"), lty=1, 
+                col=c(1,2), bg="white")
+if(n==2) return()
+# Empirical quantile estimates:
+equant <- apply(verif[1:24*2-1,], MARGIN=1, quantileMean, probs=c(0.1, 0.5, 0.9))
+#legend("bottomright", legend=pastec(dim(equant)), title="equant y")
+#legend("bottomright", legend=length(mid), title="mid x")
+polygon(x=c(mid, rev(mid)), y=c(equant[1,], rev(equant[3,])), col=addAlpha(4), border=NA)
+lines(mid, qlin, col=2, lwd=3) # Distribution theoretical quantiles again (on top)
+lines(mid, equant[2,], col=4) # Simulation medians
+if(n==3) legend("topleft", c("CC-scaling","Distribution Q","Empirical Q"), lty=1, 
+                col=c(1,2,4), bg="white")
+if(n==3) return()
+# Parametric quantile estimates:
+tquant <- apply(verif[1:24*2,], MARGIN=1, quantileMean, probs=c(0.1, 0.5, 0.9))
+polygon(x=c(mid, rev(mid)), y=c(tquant[1,], rev(tquant[3,])), col=addAlpha(3), border=NA)
+lines(mid, qlin, col=2, lwd=3) # Distribution theoretical quantiles again (on top)
+lines(mid, tquant[2,], col="darkgreen")
+legend("topleft", c("CC-scaling","Distribution Q","Empirical Q","Parametric Q"), 
+       lty=1, col=c(1,2,4,"darkgreen"), bg="white")
+box()
+}
+dummy <- tempdep(1)
+@
+% \animskipTemp
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Low sample size could explain quantile drop}
+\slidenum{s12}{13}{s14}{5}
+<<deftempdep2, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- tempdep(2)
+@
+% \animskipTemp
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Low sample size could explain quantile drop}
+\slidenum{s12}{13}{s14}{5}
+<<deftempdep3, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- tempdep(3)
+@
+% \animskipTemp
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Low sample size could explain quantile drop}
+\label{s13}
+\slidenum{s12}{13}{s14}{5}
+<<deftempdep4, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- tempdep(4)
+@
+% \begin{flushleft} \hyperlink{animTemp_begin}{\small{Begin animation}} \end{flushleft}
+\begin{textblock*}{0.15\textwidth}(0.8\textwidth, 0.35\textheight)
+\onslide<2>{\includegraphics[width=1\textwidth]{figure/umbrella2.png}\\[0.5em]}
+\end{textblock*}
+\end{frame}
+% ---------------------------
+
+
+% Next Slide: 14 last slide - metadata
+
+
+% ---------------------------
+\begin{frame}
+\label{s14}
+\slidenum{s13}{14}{s14}{9}
+\label{metadata}
+\Large \textbf{That's why you need an umbrella on hot days}\\[1em]
+\normalsize
+\onslide<2-> precipitation intensity quantile drop at high temperatures\\ may be an effect of sample size\\[1em]
+\onslide<3-> use parametrical quantiles for extreme rainfall intensity estimation\\[1em]
+%Berry Boessenkool, Potsdam University, Germany, \texttt{berry-b@gmx.de}\\
+\onslide<4-> source code slides, references and materials: \href{https://github.com/brry/prectemp}{\small{github.com/brry/prectemp}}\\[1em]
+\onslide<5-> Image credits:\\
+\scriptsize
+\href{http://7-themes.com/7024707-child-with-umbrella.html}{http://7-themes.com/7024707-child-with-umbrella.html}\\ 
+\href{http://pngimg.com/download/494}{http://pngimg.com/download/494}\\
+\href{http://dreamatico.com/data\_images/sun/sun-5.jpg}{http://dreamatico.com/data\_images/sun/sun-5.jpg}\\[1em]
+\normalsize
+\onslide<6-> Thanks to many proofreaders\\
+\onslide<7-> and my supervisors\\[1em]
+% \onslide<5-> Literature References:\\[2em]
+\scriptsize
+\onslide<1-> \href{run:0_PrecTempPotsdam_Thesis.pdf}{open Master Thesis in external viewer}\\
+% \onslide<1-> \href{run:Thesis_LitRef.pdf}{open literature references in external viewer}\\
+% \onslide<1-> \hyperlink{s0}{Back to title slide} 
+\normalsize
+
+\end{frame}
+% ---------------------------
+
+
+% ---------------------------
+\begin{frame}
+\includegraphics[width=1\textwidth]{figure/coast_oregon_2006.JPG}
+\end{frame}
+% ---------------------------
+
+
+% Additional Material in case people ask questions about it 
+
+\section{RMSE}
+
+% ---------------------------
+\begin{frame}\frametitle{Goodness of Fit\\ measured by RMSE of cumulated distribution function and ecdf}
+\slidenum{s14}{15}{s14}{9}
+<<defRMSE1, out.width='0.9\\textwidth', echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+require(extremeStat)
+require(lmomco)
+exdat <- c(61.5, 77.0, 37.0, 69.3, 75.6, 74.9, 43.7, 50.8, 55.6, 84.1, 43.6, 81.9,
+60.1, 72.4, 61.6, 94.8, 82.6, 57.2,  63.1, 73.8, 51.3, 93.6, 56.9, 52.1, 40.4,
+48.9, 113.6, 35.4, 40.1, 89.6, 47.8, 57.6, 38.9, 69.7, 110.8)
+x <- sort(exdat)
+dlf <- distLfit(exdat, cdf=TRUE, nbest=17, plot=F)
+par(mar=c(2,4,1,1))
+distLplot(dlf, cdf=TRUE, sel=c("wak", "revgum"), xlab="", main="", histargs=list(cex=0.6))
+plot(ecdf(exdat), add=TRUE, cex=0.6)
+box()
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Goodness of Fit\\ measured by RMSE of cumulated distribution function and ecdf}
+\slidenum{s14}{15}{s14}{9}
+<<defRMSE2, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+par(mar=c(2,4,1,1))
+distLplot(dlf, cdf=TRUE, sel=c("wak", "revgum"), xlab="", main="", histargs=list(cex=0.6))
+plot(ecdf(exdat), add=TRUE, cex=0.6)
+box()
+segments(x0=x, y0=plmomco(x, dlf$parameter$wak), y1=ecdf(exdat)(x), col=4, lwd=2)
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{Goodness of Fit\\ measured by RMSE of cumulated distribution function and ecdf}
+\slidenum{s14}{15}{s14}{9}
+<<defRMSE3, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+par(mar=c(2,4,1,1))
+distLplot(dlf, cdf=TRUE, sel=c("wak", "revgum"), xlab="", main="", histargs=list(cex=0.6))
+plot(ecdf(exdat), add=TRUE, cex=0.6)
+box()
+segments(x0=x, y0=plmomco(x, dlf$parameter$revgum), y1=ecdf(exdat)(x), col=2)
+@
+\begin{textblock*}{0.5\textwidth}(0.43\textwidth, 0.73\textheight)
+\onslide<2>{\footnotesize{RMSE: root of average of ( errors squared )\\ errors = line distances}}
+\end{textblock*}
+\end{frame}
+% ---------------------------
+
+
+\section{subsample realdata}
+
+% ---------------------------
+\begin{frame}\frametitle{Random subsamples drawn from real data (observations)\\
+Truncated parametric quantiles (fitted to top 20\%) still depend (a little bit)}
+\slidenum{s14}{16}{s14}{9}
+\includegraphics[width=0.85\textwidth]{figure/4_quantile_n_realdata.pdf}\\
+\end{frame}
+% ---------------------------
+
+
+\section{Application of parametric quantiles to original data}
+
+% ---------------------------
+\begin{frame}\frametitle{parametric truncated quantiles applied to original Potsdam dataset}
+\slidenum{s14}{17}{s14}{9}
+\includegraphics[width=1\textwidth]{figure/7_theoreticalquantiles_compare.pdf}\\
+\end{frame}
+% ---------------------------
+
+\section{PT relationships in literature}
+
+% ---------------------------
+\begin{frame}\frametitle{PT relationships in literature}
+\slidenum{s14}{18}{s14}{9}
+\includegraphics[width=1\textwidth]{figure/1_PT_Literature.pdf}\\
+\end{frame}
+% ---------------------------
+
+\section{simulations with other distributions}
+
+% ---------------------------
+\begin{frame}\frametitle{simulations with other distributions}
+\slidenum{s14}{19}{s14}{9}
+\includegraphics[width=1\textwidth]{figure/5_quantile_n_median.pdf}\\
+\end{frame}
+% ---------------------------
+
+\section{cutoff effect}
+
+% ---------------------------
+\begin{frame}\frametitle{cutoff effect}
+\slidenum{s14}{20}{s14}{9}
+\includegraphics[width=1\textwidth]{figure/3_cutoffeffect.pdf}\\
+\end{frame}
+% ---------------------------
+
+\section{gofprop effect}
+
+% ---------------------------
+\begin{frame}\frametitle{gofprop effect}
+\slidenum{s14}{21}{s14}{9}
+\includegraphics[width=1\textwidth]{figure/10_fitdist_gofProp-effect.pdf}\\
+\end{frame}
+% ---------------------------
+
+\section{trend}
+
+% ---------------------------
+\begin{frame}\frametitle{No real temporal trend observed with empirical quantiles}
+\slidenum{s14}{22}{s14}{9}
+<<defQtrend1, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+load("1_dat.Rdata")
+source("1_PrecTemp-CC.R") # transp, col, probs, intervals, mid, cc_lines
+dat <- dat[dat$prec>0.5,]
+dat$year <- format(dat$date, "%Y")
+yearQ <- tapply(dat$prec, dat$year, quantileMean, probs=probs)
+yearQ <- sapply(yearQ, I)
+year <- 1951:2010
+par(mar=c(2,3,1.5,0.5))
+plot(year, yearQ[1,], ylim=range(yearQ), ylab="", type="n", log="", las=1)
+#logAxis(2)
+abline(h=0:4*10, col=8); box()
+mtext("annual precipitation quantiles  [mm/h]", line=-1, adj=0.03, outer=T)
+for(i in c(1,2,4)) lines(1951:2010, yearQ[i,], col=col[i])
+legend("topright", paste("Q", rev(probs[-3]), sep="_"), col=rev(col[-3]), lty=1, cex=0.7, bg="white")
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{No real temporal trend observed with empirical quantiles}
+\slidenum{s14}{22}{s14}{9}
+<<defQtrend2, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+par(mar=c(2,3,1.5,0.5))
+plot(year, yearQ[1,], ylim=range(yearQ), ylab="", type="n", log="", las=1)
+abline(h=0:4*10, col=8); box()
+mtext("annual precipitation quantiles  [mm/h]", line=-1, adj=0.03, outer=T)
+for(i in c(1,2,4)) lines(1951:2010, yearQ[i,], col=col[i])
+for(i in c(1,2,4)) abline(lm(I(yearQ[i,])~year), col=col[i])
+legend("topright", paste("Q", rev(probs[-3]), sep="_"), col=rev(col[-3]), lty=1, cex=0.7, bg="white")
+@
+\end{frame}
+% ---------------------------
+\begin{frame}\frametitle{parametric Quantiles (Average of 3 closest dists)}
+\slidenum{s14}{22}{s14}{9}
+<<defQtrend3, out.width='0.9\\textwidth', echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+# parametric quantiles (average of 3 closest dists)
+yearQp <- tapply(dat$prec, dat$year, distLquantile, probs=probs, truncate=0.8, time=F)
+# best dists:
+###sort(table(sapply(yearQp, function(x) colnames(x)[1:3])), decr=T)
+yearQp <- sapply(yearQp, function(x) apply(x[,1:3], MARGIN=1, mean))
+
+par(mar=c(2,3,1.5,0.5))
+plot(year, yearQp[1,], ylim=range(yearQp), ylab="", type="n", log="", las=1)
+abline(h=0:4*10, col=8); box()
+mtext("annual precipitation quantiles  [mm/h]", line=-1, adj=0.03, outer=T)
+for(i in c(1,2,4)) lines(1951:2010, yearQp[i,], col=col[i])
+for(i in c(1,2,4)) abline(lm(I(yearQp[i,])~year), col=col[i])
+legend("topright", paste("Q", rev(probs[-3]), sep="_"), col=rev(col[-3]), lty=1, cex=0.7, bg="white")
+@
+\end{frame}
+% ---------------------------
+
+
+\end{document}
