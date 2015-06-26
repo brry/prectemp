@@ -1,0 +1,463 @@
+% PrecTemp Master Thesis presentation at useR!2015, June 2015
+% Berry Boessenkool, Potsdam University, Germany
+% berry-b@gmx.de
+
+% Precipitation intensity rises exponentially with temperature, as predicted by
+% the Clausius-Clapeyron relationship for air moisture.
+% Estimated quantiles in many locations worldwide show this behaviour, but
+% the relationship reverses above 15-25 degrees C (depending on climate region).
+% Meteorological boundaries have been proposed for this quantile drop.
+% Our research suggest this may also be due to small sample sizes.
+
+\documentclass{beamer}
+\setbeamerfont{frametitle}{size=\normalsize}
+
+\usepackage{animate, hyperref, xcolor, graphicx, tikz, media9, ifthen, array}
+\usepackage[absolute,overlay]{textpos}
+\hypersetup{colorlinks=true, linkcolor=cyan, urlcolor=blue}
+\beamertemplatenavigationsymbolsempty
+\beamersetleftmargin{0.5cm}
+\beamersetrightmargin{0.5cm}
+\let\Tiny=\tiny % avoid warning: Font shape `OT1/cmss/m/n' in size <4> not available. size <5> substituted on input line
+
+% Create name at the bottom of the slides (Yes, I know there are more elegant ways. It's a remnant)
+\newcommand{\slidebottom}{
+\begin{textblock*}{\paperwidth}(0pt,.97\textheight) 
+\scriptsize 
+\textit{Boessenkool, useR!2015: precipitation intensity drop at high temperatures - a statistical artefact?}
+\normalsize
+\end{textblock*}
+}
+
+
+% ACTUAL SLIDES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+\centering
+
+% ---------------------------
+
+
+\begin{frame}
+\slidebottom
+\Large
+\textbf{Why you need an umbrella on hot days}\\[0.5em]
+\normalsize
+\includegraphics[width=0.7\textwidth]{figure/umbrella.jpg}\\[-0.8em]
+\tiny
+\href{http://7-themes.com/7024707-child-with-umbrella.html}{\textcolor{black}{http://7-themes.com/7024707-child-with-umbrella.html}}\\[1em] 
+\normalsize
+application of \textbf{extreme value statistics} to precipitation\\[0.5em]
+Berry Boessenkool, \href{http://www.geo.uni-potsdam.de/geoecology.html}{uni-potsdam.de}, June 2015\\[0.5em]
+\href{https://github.com/brry}{github.com/brry}
+%   \href{https://github.com/brry/prectemp}{github.com/brry/prectemp} (Rnw source code of slides)\\
+%\href{https://github.com/brry/extremeStat}{github.com/brry/extremeStat} (R package)~~~~~~~~~~~~~~~~~\\
+
+% \hyperlink{metadata}{More metadata}
+\end{frame}
+
+
+% ---------------------------
+
+
+\begin{frame}\frametitle{60 years of hourly records at 14 stations across Germany (figs: Potsdam)}
+\slidebottom
+<<useRQemp1, out.width='0.9\\textwidth', eval=TRUE, echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+load("1_dat.Rdata")
+load("2_dat_binN_binQ_intervals_mid.Rdata")
+library(berryFunctions)
+library(extremeStat)
+source("1_PrecTemp-CC.R") # transp, col, probs, intervals, mid, cc_lines
+
+Qemp <- function(n){
+par(mar=c(3,1.8,1.5,0.5), mgp=c(1.8,0.5,0))
+plot(dat$temp, dat$prec, ylab="Precipitation [mm/h]  (logscale)", xlab="", yaxt="n", xaxt="n",
+     yaxs="i", ylim=c(1.6, 45), type="n", xlim=c(0,30), xaxs="i", log="y")
+mtext("Precipitation [mm/h]  (logscale)", line=-1, adj=0.03, outer=T)
+logAxis(side=2, mgp=c(2.3,0.7,0) )
+title(xlab="Daily average temperature  [°C]")
+axis(1,c(0,10,20,30))
+points(dat$temp, dat$prec, col=transp, pch=16, cex=1)
+box()
+if(n==4) return()
+
+abline(v=intervals, col=8)
+box()
+## plot quantiles only for bins with more than 25 values:
+Sel <- binN > 25  # n-based Selection
+for(q in 2) points(mid[Sel], binQ[q,Sel], col=col[q], pch=q+14, type="o", cex=1, lwd=2)
+# CC:
+if(n==7) legend("topleft", c("99 % Quantile", "VPsat [hPa]"), cex=0.75, 
+                       pch=c(2+14,NA), col=c(col[2], 1), bg="white", lty=1)
+cc_lines(NA)
+if(n==7) return()
+
+# Other quantiles:
+legend("topleft", c("99.99 %Q","99.9","99","90", "VPsat [hPa]", "CC-rate"),
+       pch=c(4:1+14, NA, NA), col=c(rev(col),1,1), bg="white",
+       lty=c(rep(1,5),3), inset=c(0, 0), cex=0.75)
+for(q in 4:1) points(mid[Sel], binQ[q,Sel], col=col[q], pch=q+14, type="o",
+                       cex=1, lwd=2)
+cc_lines(c(3.5, 1.5))
+if(n==11) return()
+textField(15, 2.714, "Dependency on sample size?", fill=addAlpha("white", 0.9), field="round")
+
+# write number of values per bin
+textField(mid, c(1.8, 1.95), binN, cex=0.8, quiet=T)
+if(n==13) return()
+}
+dummy <- Qemp(4)
+@
+\end{frame}
+
+
+% ---------------------------
+
+
+\begin{frame}\frametitle{precipitation intensities follow CC-scaling of air moisture with temperature}
+\slidebottom
+<<useRQemp7, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(7)
+@
+% \animskipQemp
+\begin{textblock*}{0.95\textwidth}(0.1\textwidth, 0.68\textheight) % \colorbox{white}{
+\footnotesize
+\colorbox{white}{VPsat: Clausius-Clapeyron governed \textbf{sat}urated \textbf{V}apor \textbf{P}ressure}\\[-0.2em]
+%\colorbox{white}{atmospheric precipitable water content}\\[-2em]
+%\begin{equation*} \colorbox{white}{\ensuremath{VPsat = 6.1094 * exp\left(\frac{17.625*temp}{temp+243.04}\right)}} \end{equation*}
+\normalsize
+\end{textblock*}
+\end{frame}
+
+
+% ---------------------------
+
+
+\begin{frame}\frametitle{High precipitation quantiles drop at high temperatures}
+\slidebottom
+<<useRQemp11, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(11)
+@
+% \animskipQemp
+\end{frame}
+
+
+% ---------------------------
+
+\begin{frame}\frametitle{High precipitation quantiles drop at high temperatures}
+\slidebottom
+<<useRQemp13, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- Qemp(13)
+@
+% \animskipQemp
+\end{frame}
+
+
+% ---------------------------
+
+
+\begin{frame}\frametitle{Fit distribution functions (available in \texttt{lmomco}) \\ \texttt{extremeStat::distLfit}} %to define "true" PT relationship  to all precipitation values 
+\slidebottom
+<<useRdistfit1, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, warning=F, message=F, fig.height=3.3, fig.width=5>>=
+load("1_dat.Rdata")
+source("1_PrecTemp-CC.R") # transp, col, probs, intervals, mid, cc_lines
+library(berryFunctions) # quantileMean, logAxis, functions in extremeStat
+library(extremeStat) # distLfit, distLplot
+library(lmomco) # qlmomco
+library(pbapply)
+nbest <- 8
+logPrec <- log10(dat[dat$prec > 0.5 , "prec"])
+dlf <- distLfit(logPrec, gofProp=0.1, plot=F, progbars=F)
+
+par(mar=c(3,1.8,1.5,0.7), mgp=c(1.7,0.6,0))
+# select best fits only by RMSE of upper 5% of data
+distLplot(dlf, log=TRUE, nbest=0, main="", xlab="Precipitation  [mm/h]",
+             ylab="", legargs=list(bg="white", cex=1), percentargs=c(lwd=2, lty=2),
+             logargs=c(allticks=TRUE, lcol=NA), percentline=FALSE )
+mtext("(Empirical) Probability Density Function (PDF)", line=-1, adj=0.03, outer=T)  
+distLplot(dlf, nbest=8, add=T, legargs=list(bg="white", cex=1), 
+          coldist=rainbow2(8), percentline=FALSE)
+rect(xleft=0.6, ybottom=0, xright=2, ytop=0.09, border="purple", col=addAlpha("purple"))
+box()
+@
+\begin{textblock*}{0.4\textwidth}(0.55\textwidth, 0.27\textheight) 
+\footnotesize sorted by goodness of fit (RMSE) \normalsize
+\end{textblock*}
+\end{frame}
+
+
+% ---------------------------
+
+
+\begin{frame}\frametitle{Distribution quantiles differ a lot \\ \texttt{extremeStat::distLquantile}}
+\slidebottom
+<<useRdist2, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, warning=F, message=F, fig.height=3.3, fig.width=5>>=
+# focus on tail
+par(mar=c(3,2.8,1.5,0.7), mgp=c(1.7,0.6,0))
+tquan <- distLquantile(dlf=dlf, probs=0.999, plot=TRUE, breaks=20, xlim=c(0.6,2),
+           ylim=c(0,0.09), nbest=nbest, log=TRUE, main="", percentline=FALSE,
+           legargs=list(bg="white", cex=1), percentargs=c(lwd=2, lty=2), progbars=F,
+           linargs=c(lwd=2), logargs=c(allticks=TRUE, lcol=NA), ylab="", 
+           xlab="Precipitation  [mm/h]")
+mtext("(Empirical) Probability Density Function (PDF)", line=-1, adj=0.03, outer=T)
+box()
+@
+\begin{textblock*}{0.55\textwidth}(0.15\textwidth, 0.7\textheight) 
+\footnotesize
+\colorbox{white}{lines:$Q_{99.9\%}$}
+\normalsize
+\end{textblock*}
+\end{frame}
+
+
+% ---------------------------
+
+
+\begin{frame}\frametitle{\textbf{Censored quantiles} (of the highest values of a sample) are robust\\ \texttt{extremeStat::distLquantile(..., truncate=0.9)}}
+\slidebottom
+<<useRdist3, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, warning=F, message=F, fig.height=3.3, fig.width=5>>=
+# truncated data
+par(mar=c(3,2.2,1.5,0.7), mgp=c(1.7,0.6,0))
+tquan <- distLquantile(dlf=dlf, truncate=0.9, probs=0.999, plot=TRUE, log=TRUE, ylab="",
+           nbest=nbest, legargs=list(bg="white", cex=1), 
+           xlab="Precipitation  [mm/h]  truncated to top 10%",
+           linargs=c(lwd=2), logargs=c(allticks=TRUE, lcol=NA), main="")
+mtext("(Empirical) Probability Density Function (PDF)", line=-1, adj=0.03, outer=T)
+box()
+@
+% \begin{textblock*}{0.8\textwidth}(0.12\textwidth, 0.5\textheight) % \colorbox{white}{
+% \footnotesize
+% \colorbox{white}{Probability value must be corrected:}\\[-0.3em]
+% \colorbox{white}{$Q_{0.95}$ of top 20~\% describes}\\[-0.3em]
+% \colorbox{white}{$Q_{0.99}$ of full sample.}
+% \normalsize
+% \end{textblock*}
+\end{frame}
+
+
+% ---------------------------
+
+
+\begin{frame}\frametitle{Low sample size underestimates high quantiles\\ \textbf{Empirical quantile}: order based \texttt{quantile} function in \texttt{R::stats}}
+\slidebottom
+<<useRQwak6, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=4, fig.width=6, warning=FALSE, message=FALSE>>=
+library(RColorBrewer) # for brewer.pal
+load("5_qn_wak_200.Rdata")
+load("1_dat.Rdata")
+probs <- c(0.9, 0.95, 0.99, 0.999, 0.9999) # different from other probs!
+logPrec <- log10(dat[dat$prec>0.5, "prec"])
+dlf <- distLfit(logPrec, plot=F, ks=F, quiet=T, progbars=F)
+samplesize <- 25:1000 # samplesize <- seq(25, 1000, length=20)
+library(berryFunctions) # for quantileBands, movAv, logAxis
+library(lmomco) # for rlmomco, qlmomco
+ylim <- c(0.3, 2)
+smooth <- 15
+
+Qwak <- function(n){
+par(mar=c(3,2.0,1.5,0.4), mgp=c(1.8,0.7,0))
+layout(matrix(1:2, ncol=2), widths=c(8,7))
+# Empirical quantiles
+plot(samplesize, qn_wak[[1]][4,], type="n", ylim=ylim, xlim=lim0(980), las=1, ylab="",
+      xlab="sample size n", yaxt="n", main="")
+mtext(paste0("random sample ", probs[4]*100, "% quantile [mm/h]"), line=-1, adj=0.03, outer=T)
+logAxis(side=2)
+textField(70, 1.97, "empirical quantile", mar=0.1, adj=0)
+if(n==1) return()
+tquan <- qlmomco(probs[4], para=dlf$parameter[["wak"]])
+abline(h=tquan, lwd=2, col="purple")
+if(n==2) return()
+mat <- sapply(qn_wak, function(x) x[4+5,])
+if(n==3) { lines(samplesize, mat[,1]) ; return() }
+if(n==4) { lines(samplesize, mat[,2]) ; return() }
+if(n==5) { lines(samplesize, mat[,3]) ; return() }
+quantileBands(t(mat), smooth=smooth, probs=0:10/10, meanargs=list(col=2), border=NA,
+                x=samplesize, col=brewer.pal(9,"BuGn")[3:7], txi=NA, add=TRUE, na.rm=TRUE)
+lines(samplesize, movAv(apply(mat, 1, median, na.rm=TRUE), smooth))
+abline(h=tquan, lwd=2, col="purple")
+# Legend
+legend("bottomright", c(paste("smoothing bandwidth =", smooth),
+    paste("distribution quantile:", round(10^tquan, 1), "mm/h"), "median of 200 simulations",
+    "simulation mean (not smoothed)"), bg="white", lwd=c(NA,1,1,1), col=c(NA, "purple", 1, 2), box.col=NA, cex=0.8)
+box()
+if(n==6) return()
+# Parametric quantiles
+par(mar=c(3,0,1.5,0.4))
+plot(samplesize, qn_wak[[1]][4,], type="n", ylim=ylim, xlim=lim0(980), las=1, ylab="",
+    xlab="sample size n", yaxt="n", main="")
+#logAxis(side=2, labels=F)
+abline(h=log10(logVals()$all), col=8)
+box()
+textField(70, 1.97, "parametric quantile", mar=0.1, adj=0)
+if(n==7) return()
+mat <- sapply(qn_wak, function(x) x[4,])
+quantileBands(t(mat), smooth=smooth, probs=0:10/10, meanargs=list(col=2), border=NA,
+             x=samplesize, col=brewer.pal(9,"BuGn")[3:7], txi=NA, add=TRUE, na.rm=TRUE)
+lines(samplesize, movAv(apply(mat, 1, median, na.rm=TRUE), smooth))
+abline(h=tquan, lwd=2, col="purple")
+text(70, 1.97, "parametric", adj=0)
+box()
+}
+dummy <- Qwak(6)
+@
+\end{frame}
+
+
+% ---------------------------
+
+
+\begin{frame}\frametitle{Low sample size does not underestimate high quantiles if you use\\ \textbf{Parametric quantile}: quantile from distribution fitted to sample}
+\slidebottom
+<<useRQwak8, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=4, fig.width=6, warning=FALSE, message=FALSE>>=
+dummy <- Qwak(8)
+@
+\end{frame}
+
+
+
+% ---------------------------
+
+
+\begin{frame}\frametitle{In a synthetic, continuously rising PT-relationship, \\ simulated empirical quantiles show observed drop}
+\slidebottom
+<<useRtempdep1, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+load("4_wakpar_etc.Rdata")
+load("7_tempdep_500.Rdata")
+library(berryFunctions)
+tempdep <- function(n){
+par(mar=c(3,1.8,1.5,0.4), mgp=c(1.8,0.5,0))
+plot(mid, qlin, type="n", ylim=c(0.6, 1.7), yaxt="n", xaxs="i",  ylab="", xlab="",)
+mtext("Precipitation  [mm/h]", line=-1, adj=0.03, outer=T)
+title(xlab="Temperature  [°C]", mgp=c(1.5,1,0), xpd=NA )
+logAxis(2)
+# CC rate:
+temp <- seq(-8,32, len=100)
+lines(temp, log10( 6.1094*exp(17.625*temp/(temp+243.04))), col=1)
+if(n==1) legend("topleft", "CC-scaling", lty=1, col=1, bg="white")
+if(n==1) return()
+# Distribution theoretical quantiles
+lines(mid, qlin, col=3, lwd=2)
+if(n==2) legend("topleft", c("CC-scaling","Distribution Q99.9%"), lty=1, 
+                col=c(1,2), bg="white")
+if(n==2) return()
+# Empirical quantile estimates:
+equant <- apply(verif[1:24*2-1,], MARGIN=1, quantileMean, probs=c(0.1, 0.5, 0.9))
+#legend("bottomright", legend=pastec(dim(equant)), title="equant y")
+#legend("bottomright", legend=length(mid), title="mid x")
+polygon(x=c(mid, rev(mid)), y=c(equant[1,], rev(equant[3,])), col=addAlpha(4, 0.2), border=NA)
+lines(mid, qlin, col=3, lwd=2) # Distribution theoretical quantiles again (on top)
+lines(mid, equant[2,], col=4, lwd=2) # Simulation medians
+if(n==3) legend("topleft", c("CC-scaling","Distribution Q","Empirical Q"), lty=1, 
+                col=c(1,3,4), bg="white")
+if(n==3) return()
+# Parametric quantile estimates:
+tquant <- apply(verif[1:24*2,], MARGIN=1, quantileMean, probs=c(0.1, 0.5, 0.9))
+polygon(x=c(mid, rev(mid)), y=c(tquant[1,], rev(tquant[3,])), col=addAlpha("orange"), border=NA)
+lines(mid, qlin, col=3, lwd=2) # Distribution theoretical quantiles again (on top)
+lines(mid, tquant[2,], col="orange", lwd=3)
+legend("topleft", c("CC-scaling","Distribution Q","Empirical Q","Parametric Q"), 
+       lty=1, col=c(1,3,4,"orange"), bg="white")
+box()
+}
+dummy <- tempdep(3)
+@
+\end{frame}
+
+
+% ---------------------------
+
+\begin{frame}\frametitle{In a synthetic, continuously rising PT-relationship, \\ parametric quantiles do not drop at high temperatures}
+\slidebottom
+<<useRtempdep2, out.width='0.9\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+dummy <- tempdep(4) #
+@
+\end{frame}
+
+
+% ---------------------------
+
+
+\begin{frame}\frametitle{parametric truncated quantiles applied to original dataset:\\ very high quantiles might actually continue to rise with temperature}
+\slidebottom
+\includegraphics[width=1\textwidth]{figure/7_theoreticalquantiles_compare.pdf}\\
+\end{frame}
+
+
+% ---------------------------
+
+
+\begin{frame}
+\slidebottom
+\Large \textbf{That's why you need an umbrella on hot days}\\[1em]
+\normalsize
+precipitation intensity drop at high temperatures\\ may be an effect of sample size\\
+and not an actual meteorological boundary\\[1em]
+use parametric quantiles for extreme rainfall intensity estimation\\[1em]
+%Berry Boessenkool, Potsdam University, Germany, \\
+\href{https://github.com/brry/prectemp}{\small{github.com/brry/prectemp}}\\[1em]
+\texttt{berry-b@gmx.de}
+% \scriptsize
+% \href{run:0_PrecTempPotsdam_Thesis.pdf}{open Master Thesis in external viewer}\\
+% \normalsize
+\end{frame}
+
+
+% ---------------------------
+
+
+
+\begin{frame}\frametitle{%\href{https://github.com/brry}{github.com/brry} \\
+\texttt{devtools::install\_github("brry/extremeStat")\\
+distLquantile(x, probs=0.999, truncate=0.8, plot=TRUE) }}
+\slidebottom
+%\includegraphics[width=0.5\textwidth]{figure/extremeStat_github_screenshot.JPG}\\[0.5em]
+% https://guides.github.com/activities/contributing-to-open-source/#contributing
+
+% <<useRdlq, out.width='0.9\\textwidth', echo=TRUE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+% x <- log10(dat$prec[dat$prec>0.5])
+% dlq <- 10^distLquantile(x, probs=0.999, truncate=0.8, progbars=FALSE, plot=FALSE, quiet=TRUE)
+% @
+\begin{tabular}{rr}
+\scriptsize
+\begin{tabular}{r|r}
+Distribution &  Q 99.9\%\\
+\hline
+wak         & 23.903843\\
+kap         & 23.857294\\
+wei         & 25.809802\\
+gpa         & 21.305499\\
+pe3         & 27.480982\\
+ln3         & 32.388869\\
+gno         & 32.388869\\
+gev         & 35.685466\\
+gum         & 23.770059\\
+glo         & 45.456163\\
+exp         & 36.798357\\
+ray         & 17.076555\\
+gam         & 17.612948\\
+lap         & 19.765904\\
+rice        & 13.889985\\
+nor         & 13.746608\\
+revgum      &  9.940204\\
+quantileMean& 23.424439\\
+\end{tabular} 
+&
+\raisebox{-6em}{
+%\includegraphics[width=0.6\textwidth]{figure/useRdist2-1.pdf}
+<<useRdlq, out.width='0.55\\textwidth', echo=FALSE, cache=TRUE, fig.height=3.3, fig.width=5>>=
+x <- log10(dat$prec[dat$prec>0.5])
+par(mar=c(2,3,1,0))
+dlq <- 10^distLquantile(x, probs=0.999, truncate=0.8, plot=TRUE, quiet=TRUE, log=TRUE, ylim=c(0,.2), xlim=c(1, 1.8), linargs=list(lwd=3), logargs=c(allticks=TRUE, lcol=NA), legargs=list(bg="white", cex=1) )
+box()
+@
+
+}
+\end{tabular}
+\normalsize
+
+\end{frame}
+
+
+% ---------------------------
+
+
+\end{document}
