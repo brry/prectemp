@@ -5,15 +5,16 @@ The potential intensity increases with temperature, because warm air can contain
 Unexpectedly, a drop of rain maxima is observed on very hot days.
 
 We were able to show that the rainfall may be underestimated on those days because there are few observations available. 
-I developed a software package that yields good estimates even for small data sets (available at github.com/brry/extremeStat).
+I developed a software package that yields good estimates even for small data sets (available at [github.com/brry/extremeStat](https://github.com/brry/extremeStat)).
 
 The evaluation suggests that very high rainfall values may be possible but simply not yet measured. 
 With regard to global and regional warming, this is an important finding e.g. for the planning of flash flood protective measures.
 
 
-![central image](https://github.com/brry/prectemp/blob/master/RainfallExtremes.PNG "central image")
-
-
 The paper resulting from our work is submitted and open for review at
 
 www.nat-hazards-earth-syst-sci-discuss.net/nhess-2016-183
+
+
+
+![central image](https://github.com/brry/prectemp/blob/master/RainfallExtremes.PNG "central image")
