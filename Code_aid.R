@@ -35,3 +35,9 @@ cc_outlier <- function(temp)
   }
 
 
+# midpoints of temperature bins
+mid <- seq(5, 35, by=0.1)
+
+# Colors and values for Quantiles
+probcols <- c("orange","forestgreen","darkblue","red")
+probs <- c(0.9, 0.99, 0.999, 0.9999)

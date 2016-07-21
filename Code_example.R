@@ -30,6 +30,7 @@ install.packages("maps")
 install.packages("mapdata")
 source("http://raw.githubusercontent.com/brry/berryFunctions/master/R/instGit.R")
 instGit("brry/berryFunctions") # must be version >= 1.10.25 (2016-07-20)
+instGit("brry/OSMscale")
 }
 
 
@@ -79,6 +80,13 @@ metadata$m_dur <- pmin(metadata$T_dur,metadata$P_dur)
 metadata$T_dur_Beschr <- metadata$T_bis_datum/1e4 - metadata$T_von_datum/1e4
 metadata$P_dur_Beschr <- metadata$P_bis_datum/1e4 - metadata$P_von_datum/1e4
 metadata <- sortDF(metadata, "m_dur", decreasing=TRUE)
+
+
+# Add UTM-coordinates (for distance computations)
+coord <- OSMscale::projectPoints(metadata$geoBreite, metadata$geoLaenge)
+metadata$utm32_x <- coord[,1]
+metadata$utm32_y <- coord[,2]
+rm(coord)
 
 # Save metadata:
 rownames(metadata) <- NULL
@@ -175,6 +183,16 @@ dummy <- pblapply(1:150, function(i){
                    " ID DWD\n", i, " ID berry\n",
                    round(metadata$missing[i]/(metadata$m_dur[i]*365*24)*100,1),
                    "% missing"), adj=1, cex.main=1, font.main=1)
+  # station IDs in vicinity
+  utmx <- metadata$utm32_x[1:150]
+  utmy <- metadata$utm32_y[1:150]
+  # d <- lapply(1:150, function(i) {d <- distance(utmx, utmy, utmx[i], utmy[i])
+  #                                 order(d)[2:sum(d < 80*1000)]})
+  # hist(sapply(d, length)) # for 80 km mostly between 4 and 8 (quartiles)
+  dist <- distance(utmx, utmy, utmx[i], utmy[i])
+  closeby <- order(dist)[2:sum(dist < 80*1000)]
+  title(main=paste0("\n\n\n           within 80 km: ", toString(closeby)),
+        adj=0, cex.main=1, font.main=1)
   logAxis(2)
   cc_lines(NA)
   smallPlot({
@@ -231,14 +249,44 @@ combineFiles(files, outFile="outlier/outlier all", sep=" ", names=F)
 # that is copied into excel file and formatted
 rm(files, names)
 
+# No outliers are removed. These might be heavy snowsotmrs or data encoding errors.
+# The PT-quantile computation will be restricted to >5 °C
+# Only station 25 Muenchen has a weird outlier there.
 
 
 # 2.3. PT-quantiles computation ------------------------------------------------
-library("extremeStat")
+load("PT.Rdata"); source("Code_aid.R") # mid, probs
+library(extremeStat)
+
+# long computing time (1 minute per station)
+library(parallel) # for parallel lapply execution
+cl <- makePSOCKcluster(detectCores())
+clusterExport(cl, c("PT","mid","probs"))
+clusterEvalQ(cl, library(extremeStat))
+begintime <- Sys.time(); begintime
+PTQ <- parLapply(cl, PT, function(x)
+  {
+  # Quantile estimates per temperature bin
+  binQ <- lapply(mid, function(t) {
+    seldat <- x$prec[ x$temp5>(t-1) & x$temp5<=(t+1)]
+    distLquantile(na.omit(seldat), probs=probs, truncate=0.8, addinfo=TRUE,
+                  quiet=TRUE, time=FALSE, progbars=FALSE)
+    })
+  return(binQ)
+  })
+stopCluster(cl)
+Sys.time() - begintime # on 8 cores __prognosed ca 16__ minutes
+save(PTQ, file="PTQ.Rdata")
+rm(cl, begintime)
+
 
 
 # 2.4. PT-quantiles aggregation ------------------------------------------------
-
+load("PT.Rdata"); load("PTQ.Rdata")
+length(PTQ) # 150 stations
+length(PTQ[[1]]) # each at 301 temperature bins
+mid[150] # for 19.9 °C:
+PTQ[[1]][[150]]
 
 
 # 2.5. PT-quantiles visualisation ----------------------------------------------
