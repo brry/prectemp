@@ -1,0 +1,978 @@
+starting worker pid=4932 on localhost:11308 at 02:24:48.341
+starting worker pid=2932 on localhost:11308 at 02:24:48.621
+starting worker pid=7276 on localhost:11308 at 02:24:48.871
+starting worker pid=5364 on localhost:11308 at 02:24:49.131
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (2) of 35 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 22 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 13 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 12 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 11 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 11 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 10 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 9 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+binQ computed for station ID 2
+-----------------------------
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 69 values.
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+ln3
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+ln3
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+ln3
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (2) of 62 values.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (2) of 59 values.
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (2) of 61 values.
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+ln3
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+binQ computed for station ID 1
+-----------------------------
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+ln3
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+ln3
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+binQ computed for station ID 3
+-----------------------------
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 15 values.
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 13 values.
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 11 values.
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 10 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 10 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 9 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (2) of 8 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 8 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 8 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (2) of 7 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (2) of 7 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 5 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+binQ computed for station ID 4
+-----------------------------
+Warning messages:
+1: In log(z) : NaNs produced
+2: In log(z) : NaNs produced
+starting worker pid=996 on localhost:11263 at 02:31:28.364
+starting worker pid=8960 on localhost:11263 at 02:31:28.634
+starting worker pid=8972 on localhost:11263 at 02:31:28.894
+starting worker pid=5332 on localhost:11263 at 02:31:29.144
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (2) of 35 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 22 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 13 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 12 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 11 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 11 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 10 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 9 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 69 values.
+binQ computed for station ID 2
+-----------------------------
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (2) of 62 values.
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (2) of 59 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+ln3
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (2) of 61 values.
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+ln3
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+ln3
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+ln3
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+binQ computed for station ID 1
+-----------------------------
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+ln3
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+ln3
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: Renext::Renouv failed. Returning NAs. 
+  Reason: Error in fpot.norm(x = x, threshold = threshold, model = model, start = start,  : 
+  observed information matrix is singular; use std.err = FALSE
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+binQ computed for station ID 3
+-----------------------------
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 15 values.
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 13 values.
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 11 values.
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 10 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 10 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 9 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (2) of 8 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 8 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 8 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (2) of 7 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (2) of 7 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+kap
+Note in distLgof: NAs removed in CDF (limited support region?): ln3 (1) of 5 values.
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+Note in distLgof: The following distributions were excluded since no parameters were estimated:
+exp, gam, gev, glo, gno, gpa, gum, kap, lap, ln3, nor, pe3, ray, revgum, rice, wak, wei
+Note in distLgof: No fitted distributions in dlf, thus GOF can't be compared.
+Note in q_gpd: evir::gpd failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [1]
+
+Note in q_gpd: fExtremes::gpdFit failed. Returning NAs. 
+  Reason: Error in optim(theta, negloglik, hessian = TRUE, ..., tmp = excess) : 
+  non-finite finite-difference value [2]
+
+binQ computed for station ID 4
+-----------------------------
+Warning messages:
+1: In log(z) : NaNs produced
+2: In log(z) : NaNs produced

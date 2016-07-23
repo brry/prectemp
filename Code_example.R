@@ -16,8 +16,8 @@ browseURL("http://www.nat-hazards-earth-syst-sci-discuss.net/nhess-2016-183")
 # 2. Hourly Prec-Temp relationship
 # 2.1. Raw data visualisation
 # 2.2. Outlier examination
-# 2.3. PT-quantiles computation
-# 2.4. PT-quantiles aggregation
+# 2.3. Distribution weights
+# 2.4. PT-quantiles computation
 # 2.5. PT-quantiles visualisation
 
 
@@ -30,6 +30,7 @@ install.packages("maps")
 install.packages("mapdata")
 source("http://raw.githubusercontent.com/brry/berryFunctions/master/R/instGit.R")
 instGit("brry/berryFunctions") # must be version >= 1.10.25 (2016-07-20)
+instGit("brry/extremeStat") # must be version >= 0.5.20 (2016-07-22)
 instGit("brry/OSMscale")
 }
 
@@ -176,37 +177,9 @@ for(t5 in 1:2){
 pdf(c("RawData.pdf","RawData_T5.pdf")[t5], height=5)
 dummy <- pblapply(1:150, function(i){
   x <- PT[[i]]    # pbapply(order(metadata$Stationshoehe[1:150]), ...
-  plot(1, type="n", xlim=c(-15,35), ylim=c(0.5,70), log="y", yaxt="n",
-      xlab=c("Temperature  [°C]","Temperature mean of preceding 5 hours  [°C]")[t5],
-      ylab="Precipitation  [mm/h]", main=metadata$Stationsname[i])
-  title(main=paste0(metadata$Stationshoehe[i]," meter asl\n", metadata$Stations_id[i],
-                   " ID DWD\n", i, " ID berry\n",
-                   round(metadata$missing[i]/(metadata$m_dur[i]*365*24)*100,1),
-                   "% missing"), adj=1, cex.main=1, font.main=1)
-  # station IDs in vicinity
-  utmx <- metadata$utm32_x[1:150]
-  utmy <- metadata$utm32_y[1:150]
-  # d <- lapply(1:150, function(i) {d <- distance(utmx, utmy, utmx[i], utmy[i])
-  #                                 order(d)[2:sum(d < 80*1000)]})
-  # hist(sapply(d, length)) # for 80 km mostly between 4 and 8 (quartiles)
-  dist <- distance(utmx, utmy, utmx[i], utmy[i])
-  closeby <- order(dist)[2:sum(dist < 80*1000)]
-  title(main=paste0("\n\n\n           within 80 km: ", toString(closeby)),
-        adj=0, cex.main=1, font.main=1)
-  logAxis(2)
-  cc_lines(NA)
-  smallPlot({
-             plot(map, type="l", axes=F, ann=F)
-             points(geoBreite~geoLaenge, data=metadata, col="gray95", pch=16, cex=0.6)
-             #points(geoBreite~geoLaenge, data=metadata[1:150,], col="gray85", pch=16)
-             lines(map)
-             colPoints(geoLaenge, geoBreite, Stationshoehe, data=metadata[1:150,],
-                       cex=0.6, col=seqPal(150, gb=T), legend=F)
-             points(geoBreite~geoLaenge, data=metadata[i,], lwd=2, col="red")
-             },
-             x=c(0,17), y=c(70,100), mar=rep(0,4), bg="white")
+  aid$stationplot(i, metadata, map, if(t5==1) xlab="Temperature  [°C]" )
   points(x=x[,c("temp","temp5")[t5]], y=x$prec, pch=16, col=addAlpha(1))
-  lines(c(-16:10,10), c(cc_outlier(-16:10),100), lty=3)
+  lines(c(-16:10,10), c(aid$cc_outlier(-16:10),100), lty=3)
   })
 dev.off()
 }
@@ -221,7 +194,7 @@ PT_all <- c(PT1,PT2,PT3)  ; rm(PT1,PT2,PT3)
 # Outlier definition: point above line in previous images
 PT_outlier <- pblapply(seq_along(PT), function(i){
               x <- PT[[i]]
-              index <- which(x$prec>cc_outlier(x$temp5))
+              index <- which(x$prec>aid$cc_outlier(x$temp5))
               if(length(index)<1) return(NA)
               y <- PT_all[[i]]
               y$outlier <- 0
@@ -254,43 +227,107 @@ rm(files, names)
 # Only station 25 Muenchen has a weird outlier there.
 
 
-# 2.3. PT-quantiles computation ------------------------------------------------
-load("PT.Rdata"); source("Code_aid.R") # mid, probs
+# 2.3. distribution weights ----------------------------------------------------
+load("PT.Rdata")
 library(extremeStat)
+# get weights for distribution functions:
+dn <- c("exp", "gam", "gev", "glo", "gno", "gpa", "gum", "kap", "lap",
+            "ln3", "nor", "pe3", "ray", "revgum", "rice", "wak", "wei")
+RMSE <- pblapply(PT, function(x){   # computes 2 minutes
+   sapply(c(5,10,15,20,25,30), function(t){
+      d <- distLfit(x$prec[ x$temp5>(t-1) & x$temp5<=(t+1)], truncate=0.8, plot=F, quiet=T)
+      d$gof[dn, "RMSE"]})})
+RMSE2 <- array(unlist(RMSE), dim=c(17,6,150))
+
+w <- apply(RMSE2, 1:2, mean, na.rm=TRUE)
+cweights <- max(rowMeans(w[,-6]))-rowMeans(w[,-6])
+names(cweights) <- dn
+cweights[c("revgum", "nor", "rice", "ray")] <- 0 #, "gam", "gum"
+cweights <- cweights/sum(cweights)
+
+
+pdf("Weights.pdf", height=5)
+par(mfrow=c(1,1), mar=c(4,4,2,0.2), mgp=c(2.7,0.6,0), oma=c(0,0,0,0), las=1)
+plot(1:17, type="n", xlim=lim0(0.15), yaxt="n", main="mean RMSE across stations",
+     ylab="Distribution Function", xlab="RMSE (lower = better fit)")
+cols <- seqPal(5, col=c("blue", "red"))
+for(i in 1:5) lines(w[order(rowMeans(w[,-6])),i], 1:17, col=cols[i])
+axis(2,1:17, dn[order(rowMeans(w[,-6]))])
+legend("bottomright", legend=paste(c(5,10,15,20,25),"°C"), title="Temp bin midpoint",
+       col=cols, lty=1)
+cwplot <- cweights[order(rowMeans(w[,-6]))]
+lines(replace(cwplot, cwplot==0, NA), 1:17, lwd=3, type="o", pch=16)
+text(0.05, 13.8, "Weights")
+#
+plot(c(5,10,15,20,25,30), 1:6, type="n", ylim=lim0(0.1), las=1,
+     main="min RMSE per temp", xlab="Temp bin midpoint", ylab="RMSE")
+for(i in 1:150) points(c(5,10,15,20,25,30), apply(RMSE2, 2:3, min, na.rm=TRUE)[,i],
+                       pch=16, col=addAlpha(1))
+text(17.5, 0.01, "One dot per station")
+dev.off()
+
+save(cweights, file="cweights.Rdata")
+rm(dn, RMSE, RMSE2, w, cols, cwplot, i)
+
+
+# 2.4. PT-quantiles computation ------------------------------------------------
+load("PT.Rdata"); load("cweights.Rdata"); source("Code_aid.R") # mid, probs
 
 # long computing time (1 minute per station)
 library(parallel) # for parallel lapply execution
-cl <- makePSOCKcluster(detectCores())
-clusterExport(cl, c("PT","mid","probs"))
-clusterEvalQ(cl, library(extremeStat))
+cl <- makePSOCKcluster(detectCores(), outfile="PTQlog.txt")
+clusterExport(cl, c("PT","aid", "cweights"))
+dummy <- clusterEvalQ(cl, library(extremeStat))
 begintime <- Sys.time(); begintime
-PTQ <- parLapply(cl, PT, function(x)
+PTQ <- parLapply(cl, 1:4, function(i)      #### 4 to 150 once testing is over
   {
+  x <- PT[[i]]
   # Quantile estimates per temperature bin
-  binQ <- lapply(mid, function(t) {
+  binQ <- lapply(aid$mid, function(t) {
     seldat <- x$prec[ x$temp5>(t-1) & x$temp5<=(t+1)]
-    distLquantile(na.omit(seldat), probs=probs, truncate=0.8, addinfo=TRUE,
-                  quiet=TRUE, time=FALSE, progbars=FALSE)
+    distLquantile(seldat[!is.na(seldat)], probs=aid$probs, truncate=0.8, addinfo=TRUE,
+                  weightc=cweights, order=FALSE, ssquiet=TRUE, time=FALSE, progbars=FALSE)
     })
-  return(binQ)
+  message("binQ computed for station ID ", i, "\n-----------------------------")
+  # Transform into array for faster subsetting:
+  binQ2 <- array(unlist(binQ), dim=c(37, 4, 301),
+       dimnames=list(distr=rownames(binQ[[1]]), prob=colnames(binQ[[1]]), temp=aid$mid))
+  return(binQ2)
   })
 stopCluster(cl)
-Sys.time() - begintime # on 8 cores __prognosed ca 16__ minutes
 save(PTQ, file="PTQ.Rdata")
-rm(cl, begintime)
+Sys.time() - begintime # on 8 cores __prognosed ca 16__ minutes
+rm(cl, begintime, dummy)
 
-
-
-# 2.4. PT-quantiles aggregation ------------------------------------------------
-load("PT.Rdata"); load("PTQ.Rdata")
+d <- readLines("PTQlog.txt")
+which(!1:150 %in% as.numeric(substr(d[grepl("binQ",d)], 30,100)))
+# should be empty
+rm(d)
 length(PTQ) # 150 stations
-length(PTQ[[1]]) # each at 301 temperature bins
-mid[150] # for 19.9 °C:
-PTQ[[1]][[150]]
+str(PTQ[[1]]) # each at 301 temperature bins
+aid$mid[200] # for 24.9 °C:
+PTQ[[1]][,,200]
+
 
 
 # 2.5. PT-quantiles visualisation ----------------------------------------------
+load("PTQ.Rdata"); source("Code_aid.R")
 
+pdf("PTQ.pdf", height=5)
+for(prob in c("90%", "99%", "99.9%", "99.99%"))
+{
+plot(1, type="n", xlim=c(5,30), ylim=c(2,90), log="y", yaxt="n", main=prob,
+      xlab="Temperature mean of preceding 5 hours  [°C]", ylab="Precipitation  [mm/h]")
+logAxis(2)
+aid$cc_lines(NA)
+dummy <- sapply(seq_along(PTQ), function(i){
+     x <- PTQ[[i]]
+     lines(aid$mid, x["weightedc",    prob, ], col=addAlpha("blue") )
+     lines(aid$mid, x["quantileMean", prob, ], col=addAlpha("red") )
+     })
+}
+rm(dummy, prob)
+dev.off()
 
 
 
