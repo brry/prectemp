@@ -50,10 +50,12 @@ stationplot = function(
 i, # station ID
 metadata,
 map,
-xlab="Temperature mean of preceding 5 hours  [°C]"
+xlab="Temperature mean of preceding 5 hours  [°C]",
+xlim=c(-15,35),
+ylim=c(0.5,70)
 )
   {
-  plot(1, type="n", xlim=c(-15,35), ylim=c(0.5,70), log="y", yaxt="n",
+  plot(1, type="n", xlim=xlim, ylim=ylim, log="y", yaxt="n",
       xlab=xlab, ylab="Precipitation  [mm/h]", main=metadata$Stationsname[i])
   title(main=paste0(metadata$Stationshoehe[i]," meter asl\n", metadata$Stations_id[i],
                    " ID DWD\n", i, " ID berry\n",
