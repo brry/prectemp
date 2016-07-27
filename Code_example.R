@@ -177,8 +177,8 @@ for(t5 in 1:2){
 pdf(c("RawData.pdf","RawData_T5.pdf")[t5], height=5)
 dummy <- pblapply(1:150, function(i){
   x <- PT[[i]]    # pbapply(order(metadata$Stationshoehe[1:150]), ...
-  aid$stationplot(i, metadata, map, if(t5==1) xlab="Temperature  [°C]",
-                  ylim=c(2.5,70) )
+  aid$stationplot(i, metadata, map, ylim=c(2.5,70),
+      xlab=if(t5==1) "Temperature  [°C]" else "Temperature mean of preceding 5 hours  [°C]")
   points(x=x[x$prec>2,c("temp","temp5")[t5]], y=x$prec[x$prec>2], pch=16, col=addAlpha(1))
   lines(c(-16:10,10), c(aid$cc_outlier(-16:10),100), lty=3)
   text(-10,50, 50)
