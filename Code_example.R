@@ -28,10 +28,9 @@ install.packages("pblapply")
 install.packages("RCurl")
 install.packages("maps")
 install.packages("mapdata")
-source("http://raw.githubusercontent.com/brry/berryFunctions/master/R/instGit.R")
-instGit("brry/berryFunctions") # must be version >= 1.10.25 (2016-07-20)
-instGit("brry/extremeStat") # must be version >= 0.5.21 (2016-07-23)
-instGit("brry/OSMscale")
+install.packages("berryFunctions") # must be version >= 1.10.25 (2016-07-20)
+install.packages("OSMscale")
+berryFunctions::instGit("brry/extremeStat") # must be version >= 0.5.21 (2016-07-23)
 }
 
 
@@ -178,7 +177,7 @@ pdf(c("RawData.pdf","RawData_T5.pdf")[t5], height=5)
 dummy <- pblapply(1:150, function(i){
   x <- PT[[i]]    # pbapply(order(metadata$Stationshoehe[1:150]), ...
   aid$stationplot(i, metadata, map, ylim=c(2.5,70),
-      xlab=if(t5==1) "Temperature  [캜]" else "Temperature mean of preceding 5 hours  [캜]")
+      xlab=if(t5==1) "Temperature  [째C]" else "Temperature mean of preceding 5 hours  [째C]")
   points(x=x[x$prec>2,c("temp","temp5")[t5]], y=x$prec[x$prec>2], pch=16, col=addAlpha(1))
   lines(c(-16:10,10), c(aid$cc_outlier(-16:10),100), lty=3)
   text(-10,50, 50)
@@ -225,7 +224,7 @@ combineFiles(files, outFile="outlier/outlier all", sep=" ", names=F)
 rm(files, names)
 
 # No outliers are removed. These might be heavy snowsotmrs or data encoding errors.
-# The PT-quantile computation will be restricted to >5 캜
+# The PT-quantile computation will be restricted to >5 째C
 # Only station 25 Muenchen has a weird outlier there.
 
 
@@ -255,7 +254,7 @@ plot(1:17, type="n", xlim=lim0(0.15), yaxt="n", main="mean RMSE across stations"
 cols <- seqPal(5, col=c("blue", "red"))
 for(i in 1:5) lines(w[order(rowMeans(w[,-6])),i], 1:17, col=cols[i])
 axis(2,1:17, dn[order(rowMeans(w[,-6]))])
-legend("bottomright", legend=paste(c(5,10,15,20,25),"캜"), title="Temp bin midpoint",
+legend("bottomright", legend=paste(c(5,10,15,20,25),"째C"), title="Temp bin midpoint",
        col=cols, lty=1)
 cwplot <- cweights[order(rowMeans(w[,-6]))]
 lines(replace(cwplot, cwplot==0, NA), 1:17, lwd=3, type="o", pch=16)
@@ -313,7 +312,7 @@ which(!1:150 %in% d)
 rm(d)
 length(PTQ) # 150 stations
 str(PTQ[[1]]) # each at 301 temperature bins
-aid$mid[200] # for 24.9 캜:
+aid$mid[200] # for 24.9 째C:
 PTQ[[1]][,,200]
 
 head(PT[[113]])
@@ -332,7 +331,7 @@ message("Creating plot 1/3"); flush.console()
 for(prob in c("90%", "99%", "99.9%", "99.99%"))
 {
 plot(1, type="n", xlim=c(5,30), ylim=c(2,90), log="y", yaxt="n", main=prob,
-      xlab="Temperature mean of preceding 5 hours  [캜]", ylab="Precipitation  [mm/h]")
+      xlab="Temperature mean of preceding 5 hours  [째C]", ylab="Precipitation  [mm/h]")
 logAxis(2)
 aid$cc_lines(NA)
 dummy <- sapply(seq_along(PTQ), function(i){
@@ -351,7 +350,7 @@ for(type in 1:2)
 {
 dn <- c("quantileMean","weighted2")[type]
 plot(1, type="n", xlim=c(8,28), ylim=c(5,130), log="y", yaxt="n", main=dn, ylab="", xlab="")
-title(main=prob, xlab="Temperature mean of preceding 5 hours  [캜]",
+title(main=prob, xlab="Temperature mean of preceding 5 hours  [째C]",
       ylab="Precipitation  [mm/h]", outer=TRUE, line=0)
 logAxis(2)
 aid$cc_lines(NA)
@@ -374,7 +373,7 @@ if(dn=="n_full")    {ylim <- c(5,2000); cut <- 1e5}
 if(dn=="n")         {ylim <- c(1,400) ; cut <- 1e5}
 if(dn=="threshold") {ylim <- c(0.5,25); cut <- 1e5}
 plot(1, type="n", xlim=c(8,28), ylim=ylim, log="y", yaxt="n", main=dn,
-      xlab="Temperature mean of preceding 5 hours  [캜]",
+      xlab="Temperature mean of preceding 5 hours  [째C]",
       ylab="Precipitation  99.9% quantile  [mm/h]")
 logAxis(2)
 if(!dn %in% c("n_full","n","threshold")) aid$cc_lines(NA)
