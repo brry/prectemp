@@ -9,7 +9,13 @@ browseURL("http://www.nat-hazards-earth-syst-sci-discuss.net/nhess-2016-183")
 # computing times are noted in minutes (e.g. # 5 min)
 
 # 0. Packages
-# 1. Download and process data from DWD server
+
+# 1. Data 
+# 1.1. Select DWD stations
+# 1.2. Meta data weather stations
+# 1.3. Download DWD station data
+# 1.4. Dew point temperature
+
 # 2. Hourly Prec-Temp relationship
 # 2.1. Raw data visualisation
 # 2.3. Distribution weights
@@ -22,17 +28,21 @@ if(FALSE){ # You need to download and install the packages only once
 packinst <- function(n) if(!requireNamespace(n, quietly=TRUE)) install.packages(n)
 sapply(c("berryFunctions", "extremeStat", "pblapply", "maps", 
          "mapdata", "OSMscale", "RCurl"), packinst)
-berryFunctions::instGit("brry/extremeStat") # must be version >= 0.5.21 (2016-07-23)
-berryFunctions::instGit("brry/rdwd") # not yet on CRAN version >= 0.5.1 (2016-11-21)
+berryFunctions::instGit("brry/extremeStat")  # must be version >= 0.5.21 (2016-07-23)
+berryFunctions::instGit("brry/rdwd") # not yet on CRAN version >= 0.5.1  (2016-11-21)
+berryFunctions::instGit("brry/OSMscale") #     must be version >= 0.3.11 (2016-11-22)
 }
 library(berryFunctions); library(pbapply) # needed in every section
 
 
-# 1. Download and process data from DWD server ---------------------------------
+
+# 1. Data ----------------------------------------------------------------------
+
+# 1.1. Select DWD stations -----------------------------------------------------
 # Filenames for suitable stations:
 library("rdwd")
 #files <- selectDWD(res="hourly", var=c("air_temperature", "precipitation"),
-#                   time="h", current=TRUE)
+#                   per="h", current=TRUE)
 #save(files, file="dataprep/files.Rdata")
 load("dataprep/files.Rdata")
 
@@ -60,27 +70,39 @@ prec_id <- as.integer(substr(files[[2]], 107,111))
 
 # CHECK: station IDs
 stopifnot(all(temp_id == prec_id))
-data.frame(TEMP=substr(files[[1]], 106,131), PREC=substr(files[[2]], 104,129))
+headtail(data.frame(TEMP=substr(files[[1]], 106,131), PREC=substr(files[[2]], 104,129)), 3)
 
-# meta data for selected weather stations:
+
+# 1.2. Metadata ----------------------------------------------------------------
+
 data("metaIndex", package="rdwd")
-meta <- metaIndex[metaIndex$res=="hourly" & metaIndex$time=="historical" &
-                       metaIndex$var %in% c("air_temperature", "precipitation") &
-                       metaIndex$Stations_id %in% prec_id &
-                       metaIndex$Stations_id %in% temp_id, ] 
-rm(prec_id, temp_id, metaIndex)
+meta <- metaIndex[metaIndex$res=="hourly" & 
+                  metaIndex$var=="air_temperature" &
+                  metaIndex$per=="historical" &
+                  metaIndex$Stations_id %in% prec_id &
+                  metaIndex$Stations_id %in% temp_id, ] 
+meta$id <- meta$Stations_id
+meta$name <- meta$Stationsname
+meta$state <- meta$Bundesland
+meta$lat <- meta$geoBreite
+meta$long <- meta$geoLaenge
+meta$ele <- meta$Stationshoehe
 
-all( meta[meta$var=="air_temperature", c(1,4:8), ] ==
-     meta[meta$var=="precipitation",   c(1,4:8), ]     ) # TRUE
-
-meta$T_dur <- rep(T_dur[m_dur>15], each=2)
-meta$P_dur <- rep(P_dur[m_dur>15], each=2)
-meta$m_dur <- rep(m_dur[m_dur>15], each=2)
-rm(T_dur, P_dur, m_dur)
+meta$T_dur <- T_dur[m_dur>15]
+meta$P_dur <- P_dur[m_dur>15]
+meta$m_dur <- m_dur[m_dur>15]
+meta <- sortDF(meta, "id", decreasing = FALSE)
+meta <- meta[,-(1:12)]
+rownames(meta) <- NULL
 save(meta, file="meta.Rdata")
+
+rm(T_dur, P_dur, m_dur, prec_id, temp_id, metaIndex)
 
 # CHECK: coordinates #   View(meta)
 colPoints(geoLaenge, geoBreite, m_dur, data=meta, add=F, asp=1.5)
+
+
+# 1.3. Download data -----------------------------------------------------------
 
 # Actually download files:
 #fnamesT <- dataDWD(files[[1]], read=FALSE, sleep=30) # 35 min
@@ -121,6 +143,8 @@ rm(prec, temp)
 names(PT_all) <- sapply(PT_all, "[", 1, 2)
 save(PT_all, file="dataprep/PT_all.Rdata")
 
+
+# 1.4. Dewpoint temperature ----------------------------------------------------
 
 load("dataprep/PT_all.Rdata")
 # CHECK: dew point temperature:
@@ -171,11 +195,12 @@ save(PT, file="PT.Rdata")
 
 
 
+# done ---------
 
-# code clean until here
 
 
 # 2. Hourly Prec-Temp relationship ---------------------------------------------
+
 # 2.1. Raw data visualisation --------------------------------------------------
 load("meta.Rdata"); load("PT.Rdata"); source("Code_aid.R") # aid$cc_lines
 range(sapply(PT, function(x)   max(x$prec, na.rm=T))) # 21.5 80.8
@@ -183,26 +208,32 @@ range(sapply(PT, function(x) range(x$temp, na.rm=T))) # -16.4  34.6
 range(sapply(PT, function(x) range(x$temp5,na.rm=T))) # -21.3  29.8
 hist(sapply(PT, nrow), breaks=30, col="salmon")
 
-library("mapdata")
-map <- maps::map('worldHires','Germany')
-dev.off()
+library("mapdata") ;  map <- maps::map('worldHires','Germany') ;  dev.off()
 
-# Plot PT-graph with current and preceding temp (30secs each):
-for(t5 in 1:2){
-pdf(c("RawData.pdf","RawData_T5.pdf")[t5], height=5)
-dummy <- pblapply(1:150, function(i){
-  x <- PT[[i]]    # pbapply(order(metadata$Stationshoehe[1:150]), ...
-  aid$stationplot(i, metadata, map, ylim=c(2.5,70),
-      xlab=if(t5==1) "Temperature  [°C]" else "Temperature mean of preceding 5 hours  [°C]")
-  points(x=x[x$prec>2,c("temp","temp5")[t5]], y=x$prec[x$prec>2], pch=16, col=addAlpha(1))
-  lines(c(-16:10,10), c(aid$cc_outlier(-16:10),100), lty=3)
-  text(-10,50, 50)
+# Plot PT-graph with 5 hour preceding dewpoint temp: 
+pdf("fig/RawData_T5.pdf", height=5)
+dummy <- pblapply(1:142, function(i){
+  x <- PT[[i]]    # pbapply(order(meta$ele), ...
+  aid$stationplot(i, meta, map, ylim=c(2.5,70) )
+  points(x=x$temp5[x$prec>2], y=x$prec[x$prec>2], pch=16, col=addAlpha(1))
+  text(-3,50, 50)
   })
 dev.off()
-}
-rm(dummy, t5)
 
-rm(map)
+
+# use hexbin here! google 2d histogram base plot
+
+pdf("fig/RawData_T5_all.pdf", height=5)
+aid$stationplot(1e5, meta, map, ylim=c(2.5,70), onlymap=TRUE)
+dummy <- pblapply(1:142, function(i){
+  x <- PT[[i]]
+  points(x=x$temp5[x$prec>2], y=x$prec[x$prec>2], pch=16, 
+         col=addAlpha(seqPal(100,gb=T)[classify(meta$ele)$index[i]]))
+  })
+text(-3,50, 50)    
+dev.off()
+
+rm(dummy, map)
 
 
 

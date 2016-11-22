@@ -17,7 +17,7 @@ lty=3,        # Line type of rate lines
   temp <- seq(anfang,42, len=100)
   # http://en.wikipedia.org/wiki/Clausius%E2%80%93Clapeyron_relation#Meteorology_and_climatology
   cc <- function(temp) 6.1094*exp(17.625*temp/(temp+243.04))
-  # Change rate (6 to 7% per °C)
+  # Change rate (6 to 7% per ?C)
   changerate <- diff(cc(anfang:43))/cc(anfang:42) + 1
   if(missing(startpunkte)) startpunkte <- if(par("ylog")) 10^(seq( -1.95, 2, len=13)) else
                                                          1.1^(seq(-15,40, len=14))
@@ -65,43 +65,40 @@ probcols = c("orange","forestgreen","darkblue","red")
 probs = c(0.9, 0.99, 0.999, 0.9999)
 ,
 
-stationplot = function(
+# stationplot ------------------------------------------------------------------
+
+stationplot = function(   # set up empty plot for station i with map (for section 2.1.)
 i, # station ID
-metadata,
+meta,
 map,
-xlab="Temperature mean of preceding 5 hours  [°C]",
-xlim=c(-15,35),
-ylim=c(0.5,70)
+xlab="Dew point temperature (mean of preceding 5 hours)  [ \U00B0 C]",
+xlim=c(-5,25),
+ylim=c(0.5,70),
+onlymap=FALSE
 )
   {
   plot(1, type="n", xlim=xlim, ylim=ylim, log="y", yaxt="n",
-      xlab=xlab, ylab="Precipitation  [mm/h]", main=metadata$Stationsname[i])
-  title(main=paste0(metadata$Stationshoehe[i]," meter asl\n", metadata$Stations_id[i],
-                   " ID DWD\n", i, " ID berry\n",
-                   round(metadata$missing[i]/(metadata$m_dur[i]*365*24)*100,1),
-                   "% missing"), adj=1, cex.main=1, font.main=1)
+      xlab=xlab, ylab="Precipitation  [mm/h]", main=meta$name[i])
+  if(!onlymap) 
+  {
+  title(main=paste0(meta$ele[i]," meter asl\n", meta$id[i]," ID DWD\n",i," ID berry "),
+        adj=1, cex.main=1, font.main=1)
   # station IDs in vicinity
-  utmx <- metadata$utm32_x[1:150]
-  utmy <- metadata$utm32_y[1:150]
-  # d <- lapply(1:150, function(i) {d <- distance(utmx, utmy, utmx[i], utmy[i])
-  #                                 order(d)[2:sum(d < 80*1000)]})
-  # hist(sapply(d, length)) # for 80 km mostly between 4 and 8 (quartiles)
-  dist <- distance(utmx, utmy, utmx[i], utmy[i])
-  closeby <- order(dist)[2:sum(dist < 80*1000)]
+  dist <- OSMscale::earthDist(lat, long, data=meta, i=i)
+  closeby <- order(dist)[2:sum(dist < 80)]
   title(main=paste0("\n\n\n           within 80 km: ", toString(closeby)),
         adj=0, cex.main=1, font.main=1)
+  }
   logAxis(2)
   aid$cc_lines(NA)
   smallPlot({
-             plot(map, type="l", axes=F, ann=F)
-             points(geoBreite~geoLaenge, data=metadata, col="gray95", pch=16, cex=0.6)
-             #points(geoBreite~geoLaenge, data=metadata[1:150,], col="gray85", pch=16)
-             lines(map)
-             colPoints(geoLaenge, geoBreite, Stationshoehe, data=metadata[1:150,],
-                       cex=0.6, col=seqPal(150, gb=T), legend=F)
-             points(geoBreite~geoLaenge, data=metadata[i,], lwd=2, col="red")
-             },
-             x=c(0,17), y=c(70,100), mar=rep(0,4), bg="white")
+       plot(map, type="l", axes=F, ann=F)
+       colPoints(long, lat, ele, data=meta, cex=0.6, col=seqPal(100, gb=T), legend=F)
+       points(lat~long, data=meta[i,], lwd=2, col="red")
+       },
+       x1=0, x2=0.17, y1=0.70, y2=1, mar=rep(0,4), bg="white")
   } # end station plot
+
+# xxx --------------------------------------------------------------
 
 )
