@@ -26,10 +26,10 @@ browseURL("http://www.nat-hazards-earth-syst-sci-discuss.net/nhess-2016-183")
 # 0. Packages ------------------------------------------------------------------
 if(FALSE){ # You need to download and install the packages only once
 packinst <- function(n) if(!requireNamespace(n, quietly=TRUE)) install.packages(n)
-sapply(c("berryFunctions", "extremeStat", "pblapply", "maps", 
+sapply(c("berryFunctions", "extremeStat", "pblapply", "maps", "gplots",
          "mapdata", "OSMscale", "RCurl"), packinst)
-berryFunctions::instGit("brry/extremeStat")  # must be version >= 0.5.21 (2016-07-23)
-berryFunctions::instGit("brry/rdwd") # not yet on CRAN version >= 0.5.1  (2016-11-21)
+berryFunctions::instGit("brry/extremeStat")  # must be version >= 0.5.24 (2016-11-28)
+berryFunctions::instGit("brry/rdwd") # not yet on CRAN must be >= 0.5.1  (2016-11-21)
 berryFunctions::instGit("brry/OSMscale") #     must be version >= 0.3.11 (2016-11-22)
 }
 library(berryFunctions); library(pbapply) # needed in every section
@@ -193,12 +193,6 @@ save(PT, file="PT.Rdata")
 
 
 
-
-
-# done ---------
-
-
-
 # 2. Hourly Prec-Temp relationship ---------------------------------------------
 
 # 2.1. Raw data visualisation --------------------------------------------------
@@ -210,31 +204,40 @@ hist(sapply(PT, nrow), breaks=30, col="salmon")
 
 library("mapdata") ;  map <- maps::map('worldHires','Germany') ;  dev.off()
 
+PT5 <- pblapply(1:142, function(i){
+  x <- PT[[i]]
+  data.frame(x=x$temp5[x$prec>2], y=x$prec[x$prec>2])
+  })
+
 # Plot PT-graph with 5 hour preceding dewpoint temp: 
 pdf("fig/RawData_T5.pdf", height=5)
-dummy <- pblapply(1:142, function(i){
-  x <- PT[[i]]    # pbapply(order(meta$ele), ...
+dummy <- pblapply(1:142, function(i){  # pbapply(order(meta$ele), ...
   aid$stationplot(i, meta, map, ylim=c(2.5,70) )
-  points(x=x$temp5[x$prec>2], y=x$prec[x$prec>2], pch=16, col=addAlpha(1))
+  points(PT5[[i]], pch=16, col=addAlpha(1))
   text(-3,50, 50)
   })
 dev.off()
 
 
-# use hexbin here! google 2d histogram base plot
+PT5df <- do.call(rbind, PT5)
+PT5df$y <- log10(PT5df$y)
 
 pdf("fig/RawData_T5_all.pdf", height=5)
-aid$stationplot(1e5, meta, map, ylim=c(2.5,70), onlymap=TRUE)
-dummy <- pblapply(1:142, function(i){
-  x <- PT[[i]]
-  points(x=x$temp5[x$prec>2], y=x$prec[x$prec>2], pch=16, 
-         col=addAlpha(seqPal(100,gb=T)[classify(meta$ele)$index[i]]))
-  })
-text(-3,50, 50)    
+dummy <- pblapply(20:200, function(n){
+gplots::hist2d(PT5df, col=seqPal(n), nbins=n, yaxt="n", xlim=c(-5.1,24),
+xlab="Dew point temperature (mean of preceding 5 hours)  [ \U{00B0}C]",
+ylab="Precipitation  [mm/h]", main=n)#"All stations")
+logAxis(2)
+})
 dev.off()
 
 rm(dummy, map)
 
+
+
+
+
+# done ---------
 
 
 
@@ -282,49 +285,42 @@ save(cweights, file="cweights.Rdata")
 rm(dn, RMSE, RMSE2, w, cols, cwplot, i)
 
 
+
 # 2.4. PT-quantiles computation ------------------------------------------------
-load("PT.Rdata"); load("cweights.Rdata"); source("Code_aid.R") # mid, probs
+load("PT.Rdata"); source("Code_aid.R") # mid, probs
+load("cweights.Rdata")
+
+# Change aid$mid to start at 4.8 for plotting
 
 # long computing time (1 minute per station)
 library(parallel) # for parallel lapply execution
-cl <- makePSOCKcluster(detectCores(), outfile="PTQlog.txt")
+cl <- makeCluster( detectCores()-0 )
 clusterExport(cl, c("PT","aid", "cweights"))
-dummy <- clusterEvalQ(cl, library(extremeStat))
-begintime <- Sys.time(); begintime
-PTQ <- parLapply(cl, 1:150, function(i)
+PTQ <- pblapply(X=1:142, cl=cl, FUN=function(i)
   {
-  x <- PT[[i]]
+  x <- PT[[i]]   #  x <- PT[[3]]; t=19.5
   # Quantile estimates per temperature bin
   binQ <- lapply(aid$mid, function(t) {
     seldat <- x$prec[ x$temp5>(t-1) & x$temp5<=(t+1)]
-    distLquantile(seldat[!is.na(seldat)], probs=aid$probs, truncate=0.8, addinfo=TRUE,
-                  weightc=cweights, order=FALSE, ssquiet=TRUE, time=FALSE, progbars=FALSE)
+    extremeStat::distLquantile(seldat[!is.na(seldat)], probs=aid$probs, truncate=0.8, addinfo=TRUE,
+                  weightc=NA, order=FALSE, ssquiet=TRUE, time=FALSE, progbars=FALSE)
     })
-  message("--------------------------------\n", Sys.time(),
-          "\nbinQ computed for station ID ", i, "\n--------------------------------")
   # Transform into array for faster subsetting:
-  binQ2 <- array(unlist(binQ), dim=c(37, 4, 301),
+  binQ2 <- array(unlist(binQ), dim=c(38, 4, 201),  # c(nrow(binQ[[1]]), ncol(binQ[[1]]), length(binQ))
        dimnames=list(distr=rownames(binQ[[1]]), prob=colnames(binQ[[1]]), temp=aid$mid))
   return(binQ2)
   })
+save(PTQ, file="PTQ.Rdata")     # 30 mins
+
 stopCluster(cl)
-save(PTQ, file="PTQ.Rdata")
-Sys.time() - begintime # on 4 cores 31 minutes
-rm(cl, begintime, dummy)
+rm(cl)
 
-d <- readLines("PTQlog.txt")
-d <- as.numeric(substr(d[grepl("binQ",d)], 30,100))
-paste(round(length(d)/150*100,1), "% done")
-d
 
-which(!1:150 %in% d)
-# should be empty, but 113 is missing
 
-rm(d)
-length(PTQ) # 150 stations
-str(PTQ[[1]]) # each at 301 temperature bins
-aid$mid[200] # for 24.9 °C:
-PTQ[[1]][,,200]
+length(PTQ) # 142 stations
+str(PTQ[[1]]) # each at 201 temperature bins
+aid$mid[100] # for 14.9 °C:
+PTQ[[1]][,,100]
 
 head(PT[[113]])
 n113 <- sapply(aid$mid, function(t) sum(PT[[113]]$temp5>(t-1) & PT[[113]]$temp5<=(t+1)) )
@@ -332,73 +328,86 @@ all(n113 == PTQ[[113]]["n_full",1,] )
 rm(n113)
 
 
-# 2.5. PT-quantiles visualisation ----------------------------------------------
+
+# 2.5. PT-quantiles visualization ----------------------------------------------
 load("PTQ.Rdata"); source("Code_aid.R")
 
-pdf("PTQ.pdf", height=5)
-#
-message("Creating plot 1/3"); flush.console()
-#
-for(prob in c("90%", "99%", "99.9%", "99.99%"))
+PTQplot <- function(
+prob="",
+main=prob,
+xlab="Dewpoint temperature (mean of preceding 5 hours)  [°C]", 
+ylab=paste("Precipitation ", prob, "quantile  [mm/h]"),
+outer=FALSE,
+xlim=c(4.8,21),
+ylim=c(2,130),
+line=NA,
+cc=TRUE,
+...
+)
 {
-plot(1, type="n", xlim=c(5,30), ylim=c(2,90), log="y", yaxt="n", main=prob,
-      xlab="Temperature mean of preceding 5 hours  [°C]", ylab="Precipitation  [mm/h]")
+plot(1, type="n", xlim=xlim, ylim=ylim, log="y", yaxt="n", xaxs="i", ann=FALSE)
+title(main=main, xlab=xlab, ylab=ylab, outer=outer, line=line) 
 logAxis(2)
-aid$cc_lines(NA)
-dummy <- sapply(seq_along(PTQ), function(i){
-     x <- PTQ[[i]]
-     lines(aid$mid, x["weightedc",    prob, ], col=addAlpha("blue") )
-     lines(aid$mid, x["quantileMean", prob, ], col=addAlpha("red") )
-     })
+if(cc) aid$cc_lines(NA)
 }
-#
-message("Creating plot 2/3"); flush.console()
-#
-par(mfrow=c(1,2), mar=c(2,2,1.5,0.5), oma=c(1.5,1.5,1.5,0), mgp=c(2.5,0.6,0) )
-for(prob in c("90%", "99%", "99.9%", "99.99%"))
+
+PTQlines <- function(
+prob="",  
+dn="",
+cut=150,
+col=addAlpha("black"),
+...
+)
 {
-for(type in 1:2)
-{
-dn <- c("quantileMean","weighted2")[type]
-plot(1, type="n", xlim=c(8,28), ylim=c(5,130), log="y", yaxt="n", main=dn, ylab="", xlab="")
-title(main=prob, xlab="Temperature mean of preceding 5 hours  [°C]",
-      ylab="Precipitation  [mm/h]", outer=TRUE, line=0)
-logAxis(2)
-aid$cc_lines(NA)
 stats <- sapply(PTQ, function(x){
-            lines(aid$mid, x[dn, prob, ], col=addAlpha(c("red","blue")[type]) )
-            x[dn, prob, ]})
-stats <- replace(stats, stats>150, NA)  ###
+         lines(aid$mid, x[dn, prob, ], col=col)
+         x[dn, prob, ]})
+# average of stations (bins with >50 values, rainQuantile>150 ignored):
+stats <- replace(stats, stats>cut, NA)       ### make sure this is mentioned in paper!
 statav <- rowMeans(stats, na.rm=TRUE)
 statav[apply(stats,1,function(x) sum(!is.na(x))<50)] <- NA
-lines(aid$mid, statav, lwd=2)
+statav
+}
+
+
+pdf("fig/PTQ.pdf", height=5)
+# a. empirical and parametric quantiles in one plot ----------------------------
+par(mar=c(4,4,2,0.5), mgp=c(2.5,0.6,0))
+dn <- c("quantileMean", "weighted2")              ### later: use weightedc!
+dc <- addAlpha(c("red", "blue"))
+for(prob in c("90%", "99%", "99.9%", "99.99%"))
+{
+PTQplot(prob=prob)
+dummy <- sapply(PTQ, function(x){
+         for(d in 1:2) lines(aid$mid, x[dn[d], prob, ], col=dc[d]) })       ### looks different here...
+}
+# b. Qemp/par side by side -----------------------------------------------------
+par(mfrow=c(1,2), mar=c(2,2,1.5,0.5), oma=c(1.5,1.5,1.5,0) )
+for(prob in c("90%", "99%", "99.9%", "99.99%"))
+{
+for(d in 1:2)
+{
+PTQplot(prob=prob, outer=TRUE, line=0)
+title(main=dn[d])
+statav <- PTQlines(prob=prob, dn=dn[d], col=dc[d])
+lines(aid$mid, statav, lwd=2)  
 }}
 #
-message("Creating plot 3/3"); flush.console()
-#
-par(mfrow=c(1,1), mar=c(4,4,2,0.5), oma=c(0,0,0,0), mgp=c(2.5,0.6,0) )
-dummy <- pblapply(dimnames(PTQ[[1]])$distr, function(dn){
+# c. PTQ for each distribution function ----------------------------------------
+par(mfrow=c(1,1), mar=c(4,4,2,0.5), oma=c(0,0,0,0) )
+dummy <- pblapply(dimnames(PTQ[[1]])$distr, function(dn){                   ### ... and here!
 ylim <- c(5,130)
 cut <- 150
 if(dn=="n_full")    {ylim <- c(5,2000); cut <- 1e5}
-if(dn=="n")         {ylim <- c(1,400) ; cut <- 1e5}
+if(dn=="n")         {ylim <- c(1, 400); cut <- 1e5}
 if(dn=="threshold") {ylim <- c(0.5,25); cut <- 1e5}
-plot(1, type="n", xlim=c(8,28), ylim=ylim, log="y", yaxt="n", main=dn,
-      xlab="Temperature mean of preceding 5 hours  [°C]",
-      ylab="Precipitation  99.9% quantile  [mm/h]")
-logAxis(2)
-if(!dn %in% c("n_full","n","threshold")) aid$cc_lines(NA)
-stats <- sapply(PTQ, function(x){
-            lines(aid$mid, x[dn, "99.9%", ], col=addAlpha(1) )
-            x[dn, "99.9%", ]})
-stats <- replace(stats, stats>cut, NA)
-statav <- rowMeans(stats, na.rm=TRUE)
-statav[apply(stats,1,function(x) sum(!is.na(x))<50)] <- NA
+PTQplot(prob="99.9%", ylim=ylim, main=dn, cc=!dn %in% c("n_full","n","threshold"))
+statav <- PTQlines(prob=prob, dn=dn, cut=cut)
 lines(aid$mid, statav, lwd=2, col="red")
 if(dn=="n_full") abline(h=25, lwd=2, col="red")
 if(dn=="n") abline(h=5, lwd=2, col="red")
 })
-rm(dummy, prob, dn, type, stats, statav)
+rm(dummy, prob, d, dn, dc, statav)
 dev.off()
 
 

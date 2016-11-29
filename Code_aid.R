@@ -55,7 +55,7 @@ dewtemp2=function(airtemp, relhum)
 
 # mid --------------------------------------------------------------------------
 # midpoints of temperature bins
-mid = seq(5, 35, by=0.1)
+mid = seq(5, 25, by=0.1)
 ,
 
 # probs, probcols --------------------------------------------------------------
