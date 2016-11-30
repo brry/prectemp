@@ -71,7 +71,7 @@ stationplot = function(   # set up empty plot for station i with map (for sectio
 i, # station ID
 meta,
 map,
-xlab="Dew point temperature (mean of preceding 5 hours)  [ \U00B0 C]",
+xlab="Dew point temperature (mean of preceding 5 hours)  [ \U{00B0}C]",
 xlim=c(-5,25),
 ylim=c(0.5,70),
 onlymap=FALSE
@@ -81,7 +81,7 @@ onlymap=FALSE
       xlab=xlab, ylab="Precipitation  [mm/h]", main=meta$name[i])
   if(!onlymap) 
   {
-  title(main=paste0(meta$ele[i]," meter asl\n", meta$id[i]," ID DWD\n",i," ID berry "),
+  title(main=paste0(meta$ele[i]," meter asl\n", meta$id[i]," ID DWD\n",i," ID berry"),
         adj=1, cex.main=1, font.main=1)
   # station IDs in vicinity
   dist <- OSMscale::earthDist(lat, long, data=meta, i=i)
