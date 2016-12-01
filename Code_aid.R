@@ -58,6 +58,10 @@ dewtemp2=function(airtemp, relhum)
 mid = seq(5, 25, by=0.1)
 ,
 
+# sample sizes -----------------------------------------------------------------
+n = c(25:500, seq(510,790,by=10), seq(800,1000,by=50), 1500, 2000) 
+,
+
 # probs, probcols --------------------------------------------------------------
 # Colors and values for Quantiles
 probcols = c("orange","forestgreen","darkblue","red")
@@ -65,20 +69,39 @@ probcols = c("orange","forestgreen","darkblue","red")
 probs = c(0.9, 0.99, 0.999, 0.9999)
 ,
 
-# stationplot ------------------------------------------------------------------
+# PTplot -----------------------------------------------------------------------
+PTplot = function(
+prob="",
+main=prob,
+xlab="Dewpoint temperature (mean of preceding 5 hours)  [ \U{00B0}C]", 
+ylab=paste("Precipitation ", prob, "quantile  [mm/h]"),
+outer=FALSE,
+xlim=c(4.8,21),
+ylim=c(2,130),
+line=NA,
+cc=TRUE,
+...
+)
+{
+plot(1, type="n", xlim=xlim, ylim=ylim, log="y", yaxt="n", xaxs="i", ann=FALSE, ...)
+title(main=main, xlab=xlab, ylab=ylab, outer=outer, line=line) 
+logAxis(2)
+if(cc) aid$cc_lines(NA)
+}
+,
 
+# stationplot ------------------------------------------------------------------
 stationplot = function(   # set up empty plot for station i with map (for section 2.1.)
-i, # station ID
+i, # station ID berry
 meta,
 map,
-xlab="Dew point temperature (mean of preceding 5 hours)  [ \U{00B0}C]",
-xlim=c(-5,25),
+xlim=c(-6,23),
 ylim=c(0.5,70),
-onlymap=FALSE
+onlymap=FALSE,
+...
 )
   {
-  plot(1, type="n", xlim=xlim, ylim=ylim, log="y", yaxt="n",
-      xlab=xlab, ylab="Precipitation  [mm/h]", main=meta$name[i])
+  aid$PTplot(xlim=xlim, ylim=ylim, ylab="Precipitation  [mm/h]", main=meta$name[i], ...)
   if(!onlymap) 
   {
   title(main=paste0(meta$ele[i]," meter asl\n", meta$id[i]," ID DWD\n",i," ID berry"),
@@ -89,8 +112,6 @@ onlymap=FALSE
   title(main=paste0("\n\n\n           within 80 km: ", toString(closeby)),
         adj=0, cex.main=1, font.main=1)
   }
-  logAxis(2)
-  aid$cc_lines(NA)
   smallPlot({
        plot(map, type="l", axes=F, ann=F)
        colPoints(long, lat, ele, data=meta, cex=0.6, col=seqPal(100, gb=T), legend=F)

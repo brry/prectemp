@@ -91,3 +91,21 @@ rm(dn, RMSE, RMSE2, w, cols, cwplot, i)
 
 
 
+n <- seq(200, 300, len=4)
+qn <- function(n) vapply(n, function(nn)
+  {
+  #sinkfile <- file("log.txt", open="wt")  
+  #sink(sinkfile, append=TRUE)
+  #sink(sinkfile, append=TRUE, type="message")
+  
+  d <- capture.output( 
+    message("nn=", nn),
+    distLquantile(sample(PREC, 30), probs=aid$probs, truncate=0.8, 
+                     addinfo=TRUE, weightc=NA, ssquiet=TRUE, time=FALSE, 
+                     progbars=FALSE, order=FALSE),  file="log.txt", append=TRUE, type="message")
+  #sink(type="message")
+  #sink() 
+  d
+  }, FUN.VALUE=array(0, dim=c(38,4)))
+
+

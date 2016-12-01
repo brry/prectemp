@@ -9,7 +9,7 @@ browseURL("http://www.nat-hazards-earth-syst-sci-discuss.net/nhess-2016-183")
 # computing times are noted in minutes (e.g. # 5 min)
 # Historically, section 3 came before section 2, but this is organized by content
 
-# Contents:
+# Contents ---------------------------------------------------------------------
 
 # 0. Packages
 
@@ -18,6 +18,7 @@ browseURL("http://www.nat-hazards-earth-syst-sci-discuss.net/nhess-2016-183")
 # 1.2. Meta data weather stations
 # 1.3. Download DWD station data
 # 1.4. Dewpoint temperature
+# 1.5. Dew point temperature of previous 5 hours
 
 # 2. Sample size dependency
 # 2.1. SSD all distributions
@@ -180,7 +181,8 @@ rm(x)
 dev.off()
 
 
-# Dew point temperature of previous 5 hours:
+# 1.5. Dew point temperature of previous 5 hours -------------------------------
+
 PT <- pblapply(PT_all, function(x) {                 # 10 seconds
   # Reduce filesize: column selection
   x <- x[, c("MESS_DATUM", "LUFTTEMPERATUR", "REL_FEUCHTE", "NIEDERSCHLAGSHOEHE")]
@@ -190,7 +192,7 @@ PT <- pblapply(PT_all, function(x) {                 # 10 seconds
   # fill single missing NAs in dewtemp
   x$dtna <- approx(x$dewtemp, n=nrow(x))$y
   x$dtna[is.na(x$dewtemp[-1]) & is.na(x$dewtemp[-nrow(x)])] <- NA
-  # dew point temperature of the preceding 5 hours (excluding the hour of rainfall):
+  # dew point temperature of the preceding 5 hours (excluding the hour of rainfall): ## ToDo: note in paper
   x$temp5 <- filter(x$dtna, c(0,rep(1/5,5)), sides=1)
   x$dtna <- NULL
   ### x$temp51 <- pbsapply(1:nrow(x), function(i) mean(x[pmax(1,i-5):(i-1),"dewtemp"], na.rm=TRUE)) # ca 20-30 secs per run!
@@ -207,8 +209,45 @@ save(PT, file="PT.Rdata")
 # 2. Sample size dependency ----------------------------------------------------
 
 # 2.1. SSD all distributions ---------------------------------------------------
+# ...work here... -----
+load("PT.Rdata"); source("Code_aid.R"); library(extremeStat)
+# All 136k rainfall records between 10 and 12 degrees event dewpoint temperature # ToDo: note in paper
+PREC <- unlist(lapply(PT, function(x) x[x$temp5>10 & x$temp5<12, "prec"] ))
 
-# we use custom weights from section 2.2
+hist(PREC, breaks=50, col="deepskyblue1")
+logHist(PREC)
+logHist(PREC, breaks=80)
+
+# we will later use custom weights from section 2.2
+qn <- function(simn)
+  {
+  berryFunctions::tryStack({
+  # Object and file name (with simulation run number):
+  obname <- paste0("QN",simn)
+  fname <- paste0("sim/QN",simn,".Rdata")
+  if(file.exists(fname)) return()
+  set.seed(simn) # reproducible 'random' numbers
+  # Hardcore computation returning a 3D array:
+  QN <- vapply(aid$n, function(nn) 
+            {extremeStat::distLquantile(sample(PREC,nn), 
+            probs=aid$probs, truncate=0.8, addinfo=TRUE, weightc=NA, ###
+            quiet=TRUE, time=FALSE, progbars=FALSE, order=FALSE)},
+            FUN.VALUE=array(0, dim=c(38,4)) )
+  # Saving to disc:
+  assign(obname, QN, envir=environment())
+  save(list=obname, file=fname)
+  })}
+
+# long computing time (2 minutes per simulation run):
+library(parallel) # for parallel lapply execution
+cl <- makeCluster( detectCores()-0 )
+clusterExport(cl, c("PT","aid", "PREC", "qn"))#, "cweights"))
+errors <- pblapply(X=31:200, cl=cl, FUN=qn)
+stopCluster(cl)
+rm(cl)
+save(errors, file="errors1.Rdata")
+
+
 # ToDo: paper Fig 5 + 6_potsdamQn
 
 
@@ -273,7 +312,7 @@ rm(dn, RMSE, RMSE2, w, cols, cwplot, i)
 
 # 3.1. Raw data visualisation --------------------------------------------------
 
-load("meta.Rdata"); load("PT.Rdata"); source("Code_aid.R") # aid$cc_lines
+load("meta.Rdata"); load("PT.Rdata"); source("Code_aid.R")
 range(sapply(PT, function(x)   max(x$prec, na.rm=T))) # 21.5 80.8
 range(sapply(PT, function(x) range(x$temp, na.rm=T))) # -16.4  34.6
 range(sapply(PT, function(x) range(x$temp5,na.rm=T))) # -21.3  29.8
@@ -288,7 +327,7 @@ PT5 <- pblapply(1:142, function(i){
 
 # Plot PT-graph with 5 hour preceding dewpoint temp: 
 pdf("fig/RawData_T5.pdf", height=5)
-dummy <- pblapply(1:142, function(i){  # pbapply(order(meta$ele), ...
+dummy <- pblapply(1:142, function(i){  # order(meta$ele), ...
   aid$stationplot(i, meta, map, ylim=c(2.5,70) )
   points(PT5[[i]], pch=16, col=addAlpha(1))
   text(-3,50, 50)
@@ -356,24 +395,7 @@ rm(n113)
 # 3.3. PT-quantiles visualization ----------------------------------------------
 load("PTQ.Rdata"); source("Code_aid.R")
 
-PTQplot <- function(
-prob="",
-main=prob,
-xlab="Dewpoint temperature (mean of preceding 5 hours)  [ \U{00B0}C]", 
-ylab=paste("Precipitation ", prob, "quantile  [mm/h]"),
-outer=FALSE,
-xlim=c(4.8,21),
-ylim=c(2,130),
-line=NA,
-cc=TRUE,
-...
-)
-{
-plot(1, type="n", xlim=xlim, ylim=ylim, log="y", yaxt="n", xaxs="i", ann=FALSE)
-title(main=main, xlab=xlab, ylab=ylab, outer=outer, line=line) 
-logAxis(2)
-if(cc) aid$cc_lines(NA)
-}
+
 
 PTQlines <- function(
 prob="",  
@@ -387,7 +409,7 @@ stats <- sapply(PTQ, function(x){
          lines(aid$mid, x[dn, prob, ], col=col, ...)
          x[dn, prob, ]})
 # average of stations (bins with >50 values, rainQuantile>150 ignored):
-stats <- replace(stats, stats>cut, NA)       ### make sure this is mentioned in paper!
+stats <- replace(stats, stats>cut, NA)       ### toDo: make sure this is mentioned in paper!
 statav <- rowMeans(stats, na.rm=TRUE)
 statav[apply(stats,1,function(x) sum(!is.na(x))<50)] <- NA
 statav
@@ -400,7 +422,7 @@ dn <- c("quantileMean", "weighted2")              ### later: use weightedc!
 dc <- addAlpha(c("red", "blue"))
 for(prob in c("90%", "99%", "99.9%", "99.99%"))
 {
-PTQplot(prob=prob)
+aid$PTplot(prob=prob)
 dummy <- sapply(PTQ, function(x){
          for(d in 1:2) lines(aid$mid, x[dn[d], prob, ], col=dc[d]) })
 }
@@ -410,7 +432,7 @@ for(prob in c("90%", "99%", "99.9%", "99.99%"))
 {
 for(d in 1:2)
 {
-PTQplot(prob=prob, outer=TRUE, line=0)
+aid$PTplot(prob=prob, outer=TRUE, line=0)
 title(main=dn[d])
 statav <- PTQlines(prob=prob, dn=dn[d], col=dc[d])
 lines(aid$mid, statav, lwd=2)  
@@ -424,7 +446,7 @@ cut <- 150
 if(dn=="n_full")    {ylim <- c(5,2000); cut <- 1e5}
 if(dn=="n")         {ylim <- c(1, 400); cut <- 1e5}
 if(dn=="threshold") {ylim <- c(0.5,25); cut <- 1e5}
-PTQplot(prob="99.9%", ylim=ylim, main=dn, cc=!dn %in% c("n_full","n","threshold"))
+aid$PTplot(prob="99.9%", ylim=ylim, main=dn, cc=!dn %in% c("n_full","n","threshold"))
 statav <- PTQlines(prob="99.9%", dn=dn, cut=cut)
 lines(aid$mid, statav, lwd=2, col="red")
 if(dn=="n_full") abline(h=25, lwd=2, col="red")
@@ -439,13 +461,14 @@ dev.off()
 # 3.4. PTQ per station ---------------------------------------------------------
 
 load("PTQ.Rdata"); load("PT.Rdata"); load("meta.Rdata"); source("Code_aid.R")
-library("mapdata") ; map <- maps::map('worldHires','Germany') ; dev.off()
+library("mapdata") ;  map <- maps::map('worldHires','Germany') ;  dev.off()
+
 
 dn <- c("quantileMean","weighted2","gpa", "wak")
 dc <- c("brown1", "deepskyblue4", "darkolivegreen4", "peru")
 pdf("fig/PTQ_stats.pdf", height=5)
 dummy <- pblapply(1:142, function(i){
-  aid$stationplot(i, meta, map, xlim=c(5,21), ylim=c(5,130) )
+  aid$stationplot(i, meta, map, xlim=c(4.8,21), ylim=c(5,130) )
   legend("topleft", rev(dn), col=rev(dc), lwd=2, inset=c(0.064,0), bg="white")
   points(PT[[i]][PT[[i]]$prec>5,c("temp5","prec")], pch=16, col=addAlpha(1))
   for(d in 1:4) lines(aid$mid, PTQ[[i]][dn[d], "99.9%", ], col=dc[d], lwd=2)
