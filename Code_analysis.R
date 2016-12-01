@@ -39,9 +39,10 @@ if(FALSE){ # You need to download and install the packages only once
 packinst <- function(n) if(!requireNamespace(n, quietly=TRUE)) install.packages(n)
 sapply(c("berryFunctions", "extremeStat", "pblapply", "maps", "gplots",
          "mapdata", "OSMscale", "RCurl"), packinst)
-berryFunctions::instGit("brry/extremeStat")  # must be version >= 0.5.24 (2016-11-28)
-berryFunctions::instGit("brry/rdwd") # not yet on CRAN must be >= 0.5.1  (2016-11-21)
-berryFunctions::instGit("brry/OSMscale") #     must be version >= 0.3.11 (2016-11-22)
+berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.12.22(2016-12-01)
+berryFunctions::instGit("brry/extremeStat")   # must be version >= 0.5.24 (2016-11-28)
+berryFunctions::instGit("brry/rdwd")  # not yet on CRAN must be >= 0.5.4  (2016-11-25)
+berryFunctions::instGit("brry/OSMscale")      # must be version >= 0.3.12 (2016-11-24)
 }
 library(berryFunctions); library(pbapply) # potentially needed in every section
 
@@ -106,7 +107,7 @@ meta$m_dur <- m_dur[m_dur>15]
 meta <- sortDF(meta, "id", decreasing = FALSE)
 meta <- meta[,-(1:12)]
 rownames(meta) <- NULL
-save(meta, file="meta.Rdata")
+save(meta, file="dataprods/meta.Rdata")
 
 rm(T_dur, P_dur, m_dur, prec_id, temp_id, metaIndex)
 
@@ -202,23 +203,25 @@ PT <- pblapply(PT_all, function(x) {                 # 10 seconds
   x})
 names(PT) <- names(PT_all)
 rm(PT_all)
-save(PT, file="PT.Rdata")
+save(PT, file="dataprods/PT.Rdata")
 
 
 
 # 2. Sample size dependency ----------------------------------------------------
 
-# 2.1. SSD all distributions ---------------------------------------------------
-# ...work here... -----
-load("PT.Rdata"); source("Code_aid.R"); library(extremeStat)
+# 2.1. SSD computation ---------------------------------------------------------
+
+load("dataprods/PT.Rdata"); source("Code_aid.R"); library(extremeStat)
 # All 136k rainfall records between 10 and 12 degrees event dewpoint temperature # ToDo: note in paper
 PREC <- unlist(lapply(PT, function(x) x[x$temp5>10 & x$temp5<12, "prec"] ))
+save(PREC, file="dataprods/PREC.Rdata")
 
 hist(PREC, breaks=50, col="deepskyblue1")
 logHist(PREC)
 logHist(PREC, breaks=80)
 
-# we will later use custom weights from section 2.2
+# we will later use custom weights from section 2.3
+# we use a truncation of 80%, as will be examined in section 2.4.
 qn <- function(simn)
   {
   berryFunctions::tryStack({
@@ -233,6 +236,9 @@ qn <- function(simn)
             probs=aid$probs, truncate=0.8, addinfo=TRUE, weightc=NA, ###
             quiet=TRUE, time=FALSE, progbars=FALSE, order=FALSE)},
             FUN.VALUE=array(0, dim=c(38,4)) )
+  # Dimnames
+  dimnames(QN)[3] <- list(paste(aid$n))
+  names(dimnames(QN)) <- c("distr","prob", "n")
   # Saving to disc:
   assign(obname, QN, envir=environment())
   save(list=obname, file=fname)
@@ -242,62 +248,62 @@ qn <- function(simn)
 library(parallel) # for parallel lapply execution
 cl <- makeCluster( detectCores()-0 )
 clusterExport(cl, c("PT","aid", "PREC", "qn"))#, "cweights"))
-errors <- pblapply(X=31:200, cl=cl, FUN=qn)
+errors <- pblapply(X=31:800, cl=cl, FUN=qn)
+save(errors, file="dataprods/errors.Rdata")
 stopCluster(cl)
-rm(cl)
-save(errors, file="errors1.Rdata")
+rm(cl, errors)
 
 
-# ToDo: paper Fig 5 + 6_potsdamQn
+
+# 2.2. SSD visualization -------------------------------------------------------
+
+# Read in simulation results (1.4 GB for 2000 simulations!)
+simEnv <- new.env()
+dummy <- pblapply(dir("sim", full=TRUE), load, envir=simEnv)
+simQ <- as.list(mget(ls(envir=simEnv), envir=simEnv))
+simQ <- l2array(simQ) # this takes a minute, 400MB for 745 sims
+save(simQ, file="dataprods/simQ.Rdata")
+rm(simEnv, dummy)
+
+# aggregate (takes 2 minutes):
+load("dataprods/simQ.Rdata")
+simQA <- pbapply(simQ, MARGIN=1:3, quantileMean, probs=c(seq(0,1,0.1),0.25,0.75), na.rm=TRUE)
+save(simQA, file="dataprods/simQA.Rdata")
+
+dim(simQA)
+dimnames(simQA)
 
 
-# 2.2. Distribution weights ----------------------------------------------------
-
-# we use a truncation of 80%, as will be examined in section 2.4.
-load("PT.Rdata")
-library(extremeStat)
-# get weights for distribution functions:
-dn <- c("exp", "gam", "gev", "glo", "gno", "gpa", "gum", "kap", "lap",
-            "ln3", "nor", "pe3", "ray", "revgum", "rice", "wak", "wei")
-RMSE <- pblapply(PT, function(x){   # computes 2 minutes
-   sapply(c(5,10,15,20,25,30), function(t){
-      d <- distLfit(x$prec[ x$temp5>(t-1) & x$temp5<=(t+1)], truncate=0.8, plot=F, quiet=T)
-      d$gof[dn, "RMSE"]})})
-RMSE2 <- array(unlist(RMSE), dim=c(17,6,150))
-
-w <- apply(RMSE2, 1:2, mean, na.rm=TRUE)
-cweights <- max(rowMeans(w[,-6]))-rowMeans(w[,-6])
-names(cweights) <- dn
-cweights[c("revgum", "nor", "rice", "ray")] <- 0 #, "gam", "gum"
-cweights <- cweights/sum(cweights)
+# ...work here... -----
 
 
-pdf("Weights.pdf", height=5)
-par(mfrow=c(1,1), mar=c(4,4,2,0.2), mgp=c(2.7,0.6,0), oma=c(0,0,0,0), las=1)
-plot(1:17, type="n", xlim=lim0(0.15), yaxt="n", main="mean RMSE across stations",
-     ylab="Distribution Function", xlab="RMSE (lower = better fit)")
-cols <- seqPal(5, col=c("blue", "red"))
-for(i in 1:5) lines(w[order(rowMeans(w[,-6])),i], 1:17, col=cols[i])
-axis(2,1:17, dn[order(rowMeans(w[,-6]))])
-legend("bottomright", legend=paste(c(5,10,15,20,25),"°C"), title="Temp bin midpoint",
-       col=cols, lty=1)
-cwplot <- cweights[order(rowMeans(w[,-6]))]
-lines(replace(cwplot, cwplot==0, NA), 1:17, lwd=3, type="o", pch=16)
-text(0.05, 13.8, "Weights")
-#
-plot(c(5,10,15,20,25,30), 1:6, type="n", ylim=lim0(0.1), las=1,
-     main="min RMSE per temp", xlab="Temp bin midpoint", ylab="RMSE")
-for(i in 1:150) points(c(5,10,15,20,25,30), apply(RMSE2, 2:3, min, na.rm=TRUE)[,i],
-                       pch=16, col=addAlpha(1))
-text(17.5, 0.01, "One dot per station")
+load("dataprods/simQA.Rdata"); load("dataprods/PREC.Rdata"); source("Code_aid.R")
+
+pdf("fig/simQn.pdf", height=5)
+par(mar=c(3.5,3.5,2,0.5), mgp=c(2.1,0.7,0), las=1)
+dn <- dimnames(simQA)[[2]][1:34]
+dummy <- pblapply(dn, function(d)
+  {
+  plot(1, type="n", xlim=lim0(800), ylim=c(5,20), log="", main=d, 
+       xlab="sample size", ylab="Random sample 99.9% quantile estimate")
+  for(dd in dn) lines(aid$n, simQA["50%",dd,"99.9%",], col="grey80")
+  abline(h=quantileMean(PREC, 0.999), lty=3)
+  ciBand(yl=simQA["30%",d,"99.9%",], 
+         ym=simQA["50%",d,"99.9%",],
+         yu=simQA["70%",d,"99.9%",], x=aid$n, colm="blue", add=TRUE)
+})
+rm(dummy)
 dev.off()
 
-save(cweights, file="cweights.Rdata")
-rm(dn, RMSE, RMSE2, w, cols, cwplot, i)
+# ToDo: paper Fig 5 + 6_potsdamQn
+# ToDo: recreate paper Fig 6 SSD GPD 
 
 
-# 2.3. SSD GPD -----------------------------------------------------------------
-# ToDo: recreate paper Fig 6
+
+
+# 2.3. Distribution weights ----------------------------------------------------
+
+
 
 
 # 2.4. Truncation dependency ---------------------------------------------------
@@ -312,7 +318,7 @@ rm(dn, RMSE, RMSE2, w, cols, cwplot, i)
 
 # 3.1. Raw data visualisation --------------------------------------------------
 
-load("meta.Rdata"); load("PT.Rdata"); source("Code_aid.R")
+load("dataprods/meta.Rdata"); load("dataprods/PT.Rdata"); source("Code_aid.R")
 range(sapply(PT, function(x)   max(x$prec, na.rm=T))) # 21.5 80.8
 range(sapply(PT, function(x) range(x$temp, na.rm=T))) # -16.4  34.6
 range(sapply(PT, function(x) range(x$temp5,na.rm=T))) # -21.3  29.8
@@ -354,8 +360,8 @@ rm(dummy, map)
 
 # 3.2. PT-quantiles computation ------------------------------------------------
 
-load("PT.Rdata"); source("Code_aid.R") # mid, probs
-load("cweights.Rdata")
+load("dataprods/PT.Rdata"); source("Code_aid.R") # mid, probs
+load("dataprods/cweights.Rdata")
 
 # Change aid$mid to start at 4.8 for plotting, change 201 to 203
 
@@ -377,7 +383,7 @@ PTQ <- pblapply(X=1:142, cl=cl, FUN=function(i)
        dimnames=list(distr=rownames(binQ[[1]]), prob=colnames(binQ[[1]]), temp=aid$mid))
   return(binQ2)
   })
-save(PTQ, file="PTQ.Rdata")     # 30 mins
+save(PTQ, file="dataprods/PTQ.Rdata")     # 30 mins
 stopCluster(cl)
 rm(cl)
 
@@ -393,7 +399,7 @@ rm(n113)
 
 
 # 3.3. PT-quantiles visualization ----------------------------------------------
-load("PTQ.Rdata"); source("Code_aid.R")
+load("dataprods/PTQ.Rdata"); source("Code_aid.R")
 
 
 
@@ -460,7 +466,7 @@ dev.off()
 
 # 3.4. PTQ per station ---------------------------------------------------------
 
-load("PTQ.Rdata"); load("PT.Rdata"); load("meta.Rdata"); source("Code_aid.R")
+load("dataprods/PTQ.Rdata"); load("dataprods/PT.Rdata"); load("dataprods/meta.Rdata"); source("Code_aid.R")
 library("mapdata") ;  map <- maps::map('worldHires','Germany') ;  dev.off()
 
 
