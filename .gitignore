@@ -8,3 +8,6 @@ fig/RawData_T5_all.pdf
 fig/RawData_T5_all_old.pdf
 sim
 dataprods/simQ.Rdata
+dataprods/log_QN.Rdata
+
+

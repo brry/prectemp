@@ -26,6 +26,7 @@ browseURL("http://www.nat-hazards-earth-syst-sci-discuss.net/nhess-2016-183")
 # 2.3. SSD GPD 
 # 2.4. Truncation dependency 
 # 2.5. tempdep Wakeby distribution
+# 2.6. Sample size bias lin vs log
 
 # 3. Hourly Prec-Temp relationship
 # 3.1. Raw data visualisation
@@ -300,8 +301,11 @@ dev.off()
 
 
 
-
+        
 # 2.3. Distribution weights ----------------------------------------------------
+
+load("dataprods/simQA.Rdata"); load("dataprods/PREC.Rdata"); source("Code_aid.R")
+
 
 
 
@@ -312,6 +316,56 @@ dev.off()
 
 # 2.5. tempdep Wakeby distribution ---------------------------------------------
 # ToDo: recreate paper Fig 7
+
+
+
+# 2.6. Sample size bias lin vs log ---------------------------------------------
+
+load("dataprods/PREC.Rdata"); source("Code_aid.R")
+# lower n-dependency if log10(randomsample) is used for fitting:
+log_n <- c(25:100,seq(150,500, by=50))
+log_qn <- function(...) berryFunctions::tryStack( vapply(log_n, function(nn){
+    ransam <- sample(PREC,nn)
+    lin <- extremeStat::distLquantile(ransam, sel=c("wak","gpa"), probs=aid$probs, 
+    truncate=0.8, addinfo=FALSE, weighted=FALSE, gpd=FALSE, order=FALSE, quiet=TRUE)
+    log <- extremeStat::distLquantile(log10(ransam), sel=c("wak","gpa"), probs=aid$probs, 
+    truncate=0.8, addinfo=FALSE, weighted=FALSE, gpd=FALSE, order=FALSE, quiet=TRUE)
+    rownames(log) <- paste0("log_",rownames(log))
+    rbind(lin,log) }, FUN.VALUE=array(0, dim=c(6,4)) ), silent=TRUE)
+
+# 80? runs per minute on 4 cores:
+library(parallel)
+cl <- makeCluster( detectCores()-0 )
+clusterExport(cl, c("PREC", "log_qn", "aid", "log_n"))
+log_QN <- pblapply(X=1:800, cl=cl, FUN=log_qn)
+save(log_n, log_QN, file="dataprods/log_QN.Rdata")
+stopCluster(cl) ; rm(cl)
+
+
+load("dataprods/log_QN.Rdata") ; load("dataprods/PREC.Rdata")
+log_QNA <- l2array( log_QN[sapply(log_QN, class)=="array"] )
+log_QNAg <- pbapply(log_QNA, MARGIN=1:3, quantileMean, probs=c(seq(0,1,0.1),0.25,0.75), na.rm=TRUE)
+
+log_plot <- function(d, fun=I, ...) 
+  {
+  ciBand(yl=fun(log_QNAg["30%",d,"99.9%",]), xlab="Sample size", ylim=c(0.7,1.8),
+         ym=fun(log_QNAg["50%",d,"99.9%",]), yaxt="n", 
+         yu=fun(log_QNAg["70%",d,"99.9%",]), x=log_n, ...)
+  logAxis(2)
+  abline(h=c(quantileMean(PREC,0.999), quantileMean(log10(PREC),0.999)), lty=3)
+  legend("topright", d, bty="n", inset=0.04)
+  }
+
+pdf("fig/loglin_samplesizedependency.pdf", height=5)
+par(mfrow=c(1,2), mar=c(3,3,2,0.4), mgp=c(1.9,0.6,0))
+log_plot("wak", fun=log10,          ylab="log( distLquantile(sample) )", main="linear")
+log_plot("log_wak",                 ylab="distLquantile( log(sample) )", main="logarithmic")
+log_plot("gpa", fun=log10,          ylab="log( distLquantile(sample) )", main="linear")
+log_plot("log_gpa",                 ylab="distLquantile( log(sample) )", main="logarithmic")
+log_plot("quantileMean", fun=log10, ylab="log( distLquantile(sample) )", main="linear")
+log_plot("log_quantileMean",        ylab="distLquantile( log(sample) )", main="logarithmic")
+dev.off()
+
 
 
 # 3. Hourly Prec-Temp relationship ---------------------------------------------
