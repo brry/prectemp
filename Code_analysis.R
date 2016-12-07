@@ -41,7 +41,7 @@ packinst <- function(n) if(!requireNamespace(n, quietly=TRUE)) install.packages(
 sapply(c("berryFunctions", "extremeStat", "pblapply", "maps", "gplots",
          "mapdata", "OSMscale", "RCurl"), packinst)
 berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.12.22(2016-12-01)
-berryFunctions::instGit("brry/extremeStat")   # must be version >= 0.5.24 (2016-11-28)
+berryFunctions::instGit("brry/extremeStat")   # must be version >= 0.5.25 (2016-12-06)
 berryFunctions::instGit("brry/rdwd")  # not yet on CRAN must be >= 0.5.4  (2016-11-25)
 berryFunctions::instGit("brry/OSMscale")      # must be version >= 0.3.12 (2016-11-24)
 }
@@ -210,9 +210,7 @@ save(PT, file="dataprods/PT.Rdata")
 
 # 2. Sample size dependency ----------------------------------------------------
 
-# 2.1. SSD computation ---------------------------------------------------------
-
-load("dataprods/PT.Rdata"); source("Code_aid.R"); library(extremeStat)
+load("dataprods/PT.Rdata")
 # All 136k rainfall records between 10 and 12 degrees event dewpoint temperature # ToDo: note in paper
 PREC <- unlist(lapply(PT, function(x) x[x$temp5>10 & x$temp5<12, "prec"] ))
 save(PREC, file="dataprods/PREC.Rdata")
@@ -221,8 +219,14 @@ hist(PREC, breaks=50, col="deepskyblue1")
 logHist(PREC)
 logHist(PREC, breaks=80)
 
-# we will later use custom weights from section 2.3
-# we use a truncation of 80%, as will be examined in section 2.4.
+
+# 2.1. SSD computation ---------------------------------------------------------
+
+load("dataprods/PREC.Rdata"); source("Code_aid.R"); library(extremeStat)
+load("dataprods/dweight.Rdata")
+
+# custom weights come from section 2.3, determined from 800 runs (*_firstrun folders)
+# truncation of 80% comes from section 2.4.
 qn <- function(simn)
   {
   berryFunctions::tryStack({
@@ -249,7 +253,7 @@ qn <- function(simn)
 library(parallel) # for parallel lapply execution
 cl <- makeCluster( detectCores()-0 )
 clusterExport(cl, c("PT","aid", "PREC", "qn"))#, "cweights"))
-errors <- pblapply(X=31:800, cl=cl, FUN=qn)
+errors <- pblapply(X=1:7, cl=cl, FUN=qn)
 save(errors, file="dataprods/errors.Rdata")
 stopCluster(cl)
 rm(cl, errors)
@@ -300,12 +304,28 @@ dev.off()
 # ToDo: recreate paper Fig 6 SSD GPD 
 
 
-
         
 # 2.3. Distribution weights ----------------------------------------------------
 
 load("dataprods/simQA.Rdata"); load("dataprods/PREC.Rdata"); source("Code_aid.R")
+Qtrue <- quantileMean(PREC, 0.999)
+drmse <- sapply(dimnames(simQA)[[2]][1:17], function(d) rmse(simQA["50%",d,"99.9%",], rep(Qtrue,512)))
 
+dweight <- 3-drmse
+dweight[dweight<0] <- 0
+dweight <- dweight/sum(dweight)
+
+library(extremeStat)
+dlf <- distLfit(PREC, truncate=0.8, weightc=dweight)
+dlf$gof
+
+save(dweight, file="dataprods/dweight.Rdata")
+
+pdf("fig/distribution_weights.pdf", height=5)
+distLgofPlot(dlf, ranks=FALSE, lwd=1.5)
+barplot(sort(drmse), horiz=TRUE, las=1, main="Deviation from true quantile (RMSE along sample sizes)")
+barplot(sort(dweight), horiz=TRUE, las=1, main="Relative weights")
+dev.off()
 
 
 
