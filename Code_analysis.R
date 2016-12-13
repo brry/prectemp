@@ -39,9 +39,9 @@ browseURL("http://www.nat-hazards-earth-syst-sci-discuss.net/nhess-2016-183")
 if(FALSE){ # You need to download and install the packages only once
 packinst <- function(n) if(!requireNamespace(n, quietly=TRUE)) install.packages(n)
 sapply(c("berryFunctions", "extremeStat", "pblapply", "maps", "gplots",
-         "mapdata", "OSMscale", "RCurl"), packinst)
-berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.12.22(2016-12-01)
-berryFunctions::instGit("brry/extremeStat")   # must be version >= 0.5.25 (2016-12-06)
+         "mapdata", "OSMscale", "RCurl"), packinst) 
+berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.13.0 (2016-12-09)
+berryFunctions::instGit("brry/extremeStat")   # must be version >= 0.6.0  (2016-12-12)
 berryFunctions::instGit("brry/rdwd")  # not yet on CRAN must be >= 0.5.4  (2016-11-25)
 berryFunctions::instGit("brry/OSMscale")      # must be version >= 0.3.12 (2016-11-24)
 }
@@ -223,12 +223,14 @@ logHist(PREC, breaks=80)
 # 2.1. SSD computation ---------------------------------------------------------
 
 load("dataprods/PREC.Rdata"); source("Code_aid.R"); library(extremeStat)
-load("dataprods/dweight.Rdata")
+#load("dataprods/dweight.Rdata")
 
-# custom weights come from section 2.3, determined from 800 runs (*_firstrun folders)
+# custom weights come from section 2.3, determined from 400 runs (*_firstrun folders)
 # truncation of 80% comes from section 2.4.
 qn <- function(simn)
   {
+  cat("\n------- sim run ", simn, " started ", as.character(Sys.time()), " -------\n", 
+      file=paste0("simlogs/",simn,".txt"), append=TRUE)
   berryFunctions::tryStack({
   # Object and file name (with simulation run number):
   obname <- paste0("QN",simn)
@@ -238,7 +240,7 @@ qn <- function(simn)
   # Hardcore computation returning a 3D array:
   QN <- vapply(aid$n, function(nn) 
             {extremeStat::distLquantile(sample(PREC,nn), 
-            probs=aid$probs, truncate=0.8, addinfo=TRUE, weightc=NA, ###
+            probs=aid$probs, truncate=0.8, addinfo=TRUE, weightc=NA,#dweight,
             quiet=TRUE, time=FALSE, progbars=FALSE, order=FALSE)},
             FUN.VALUE=array(0, dim=c(38,4)) )
   # Dimnames
@@ -247,20 +249,28 @@ qn <- function(simn)
   # Saving to disc:
   assign(obname, QN, envir=environment())
   save(list=obname, file=fname)
-  })}
+  }, tracewarnings=simn<15, file=paste0("simlogs/",simn,".txt")  )
+  cat("\n------- sim run ", simn, " finish  ", as.character(Sys.time()), " -------\n", 
+      file=paste0("simlogs/",simn,".txt"), append=TRUE)
+  }
 
-# long computing time (2 minutes per simulation run):
+# long computing time (2-2.5 minutes per simulation run):
+# 400 in 2 hours on 7 cores
 library(parallel) # for parallel lapply execution
-cl <- makeCluster( detectCores()-0 )
-clusterExport(cl, c("PT","aid", "PREC", "qn"))#, "cweights"))
-errors <- pblapply(X=1:7, cl=cl, FUN=qn)
-save(errors, file="dataprods/errors.Rdata")
+cl <- makeCluster( detectCores()-1 )
+clusterExport(cl, c("aid", "PREC", "qn", "dweight"))
+dummy <- pblapply(X=1:800, cl=cl, FUN=qn)
 stopCluster(cl)
-rm(cl, errors)
+rm(cl, dummy)
+
 
 
 
 # 2.2. SSD visualization -------------------------------------------------------
+
+load("sim/QN1.Rdata")
+QN1[c("kap","ln3"),,1:20]
+
 
 # Read in simulation results (1.4 GB for 2000 simulations!)
 simEnv <- new.env()
@@ -272,10 +282,11 @@ rm(simEnv, dummy)
 
 # aggregate (takes 2 minutes):
 load("dataprods/simQ.Rdata")
-simQA <- pbapply(simQ, MARGIN=1:3, quantileMean, probs=c(seq(0,1,0.1),0.25,0.75), na.rm=TRUE)
+simQA <- pbapply(simQ, MARGIN=1:3, quantileMean, probs=c(0.3,0.5,0.7), na.rm=TRUE)#c(seq(0,1,0.1),0.25,0.75), na.rm=TRUE)
 save(simQA, file="dataprods/simQA.Rdata")
 
 dim(simQA)
+str(simQA)
 dimnames(simQA)
 
 
@@ -474,8 +485,6 @@ rm(n113)
 
 # 3.3. PT-quantiles visualization ----------------------------------------------
 load("dataprods/PTQ.Rdata"); source("Code_aid.R")
-
-
 
 PTQlines <- function(
 prob="",  
