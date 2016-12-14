@@ -6,9 +6,12 @@ oldStuff/
 dataprep/
 fig/RawData_T5_all.pdf
 fig/RawData_T5_all_old.pdf
-sim
-sim_firstrun
+sim/
+sim_firstrun/
+simlogs/
 dataprods_firstrun/simQ.Rdata
+dataprods/simQ.Rdata
 dataprods/log_QN.Rdata
-
+Q_estim_question/
+dummy/
 

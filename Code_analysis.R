@@ -40,8 +40,8 @@ if(FALSE){ # You need to download and install the packages only once
 packinst <- function(n) if(!requireNamespace(n, quietly=TRUE)) install.packages(n)
 sapply(c("berryFunctions", "extremeStat", "pblapply", "maps", "gplots",
          "mapdata", "OSMscale", "RCurl"), packinst) 
-berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.13.0 (2016-12-09)
-berryFunctions::instGit("brry/extremeStat")   # must be version >= 0.6.0  (2016-12-12)
+berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.13.2 (2016-12-14)
+berryFunctions::instGit("brry/extremeStat")   # must be version >= 0.6.2  (2016-12-14)
 berryFunctions::instGit("brry/rdwd")  # not yet on CRAN must be >= 0.5.4  (2016-11-25)
 berryFunctions::instGit("brry/OSMscale")      # must be version >= 0.3.12 (2016-11-24)
 }
@@ -226,14 +226,12 @@ logHist(PREC, breaks=80)
 load("dataprods/PREC.Rdata"); source("Code_aid.R"); library(extremeStat)
 #load("dataprods/dweight.Rdata")
 
-ransam <- function(simn) # random sample generator
+ransample <- function(simn) # random sample generator
   {
   set.seed(simn) # reproducible 'random' numbers
   lapply(aid$n, function(nn) sample(PREC,nn) )
   }
   
-d <- ransam(113)[[23]]
-
 # custom weights come from section 2.3, determined from 400 runs (*_firstrun folders)
 # truncation of 80% comes from section 2.4.
 qn <- function(simn)
@@ -248,9 +246,9 @@ qn <- function(simn)
   # Quantile estimation function:
   Qest <- function(x) 
     extremeStat::distLquantile(x, probs=aid$probs, truncate=0.8, addinfo=TRUE, 
-    sanerange=c(0.4,500), sanevals=c(NA,500), quiet=TRUE, order=FALSE, weightc=NA)#dweight)
+    sanerange=c(0.4,1000), sanevals=c(NA,1000), quiet=TRUE, order=FALSE, weightc=NA)#dweight)
   # random samples
-  rs <- ransam(simn)
+  rs <- ransample(simn)
   # Hardcore computation returning a 3D array:
   QN <- vapply(rs, Qest, FUN.VALUE=array(0, dim=c(38,4)) )
   # Dimnames
@@ -268,7 +266,7 @@ qn <- function(simn)
 # 400 in 2 hours on 7 cores
 library(parallel) # for parallel lapply execution
 cl <- makeCluster( detectCores()-1 )
-clusterExport(cl, c("aid", "PREC", "qn"))#, "dweight"))
+clusterExport(cl, c("aid", "PREC", "qn", "ransample"))#, "dweight"))
 dummy <- pblapply(X=c(131,211,277,278,363), cl=cl, FUN=qn)
 stopCluster(cl)
 rm(cl, dummy)
@@ -296,22 +294,17 @@ dim(simQA)
 str(simQA)
 dimnames(simQA)
 simQA["0%", ,"99.9%", as.character(40:45)]
-
 which(simQ<0, arr.ind=TRUE) # 209
 dimnames(simQ)[[4]][13]
 str(which(simQ[1:35, , ,]>900, arr.ind=TRUE)) # 12k (45k>200)
-
 toolarge <- which(simQ[1:35,"99%", ,]>500, arr.ind=TRUE)
 toolarge[1:30,]
 summary(toolarge)
 
 table(rownames(which(simQ[1:35, "99%", ,]>500, arr.ind=TRUE)))
-
 simQ[,,13,1]
 
-which(simQ[1:35, , ,]>1e90, arr.ind=TRUE)
 kap <- as.vector(simQ["kap","99.9%",,])
-mean(is.na(kap)) # 6%
 val <- logSpaced(min=120, max=250, n=100, plot=F)
 numlarger <- sapply(val, function(x) sum(kap>x, na.rm=T))
 plot(val, numlarger, log="y", type="o", las=1)
@@ -321,9 +314,6 @@ numlarger <- pbsapply(val, function(x) sum(simQ[20:35, "99.9%",,]>x, na.rm=T))
 plot(val, numlarger, log="yx", type="o", axes=F, main="Q99.9% GPD estimates larger than val")
 logAxis(1); logAxis(2)
 
-sum(kap>1e5, na.rm=T)# 35
-
-d <- "kap"; ciBand(yl=simQA["10%",d,"99.9%",], ym=simQA["50%",d,"99.9%",], yu=simQA["100%",d,"99.9%",], x=aid$n, colm="blue")
 
 
 # 2.3. Distribution weights ----------------------------------------------------
@@ -387,6 +377,29 @@ dev.off()
 
 
 # _c. error rate -----
+
+load("dataprods/simQ.Rdata"); source("Code_aid.R")
+simQ[simQ<0.5] <- NA
+simQ[1:35,,,][simQ[1:35,,,]>200] <- NA
+
+simNA <- apply(simQ, 1:3, function(x) mean(is.na(x)))
+w_error <- apply(simQ, 1, function(x) mean(is.na(x)))
+dn <- names(sort(w_error))
+
+
+pdf("fig/distribution_errorrates.pdf", height=5)
+dummy <- pblapply(dn, function(d)
+{
+plot(1, xlim=c(25,2000), ylim=lim0(0.7), type="n", log="x", xaxt="n", 
+     xlab="Sample size", ylab="Proportion of NAs across simulations", las=1)
+logAxis(1)
+title(main=d)
+for(dd in dn) for(p in names(aid$probcols)) lines(aid$n, simNA[dd,p,], col=8)
+for(p in names(aid$probcols)) lines(aid$n, simNA[d,p,], col=aid$probcols[p])
+})
+rm(dummy)
+dev.off()
+
 
 # _d. Visualization -----
 save(dweight, file="dataprods/dweight.Rdata")

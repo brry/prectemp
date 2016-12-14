@@ -64,7 +64,10 @@ n = c(25:500, seq(510,790,by=10), seq(800,1000,by=50), 1500, 2000)
 
 # probs, probcols --------------------------------------------------------------
 # Colors and values for Quantiles
-probcols = c("orange","forestgreen","darkblue","red")
+probcols = c("90%"   ="orange",
+             "99%"   ="forestgreen",
+             "99.9%" ="darkblue",
+             "99.99%"="red")
 ,
 probs = c(0.9, 0.99, 0.999, 0.9999)
 ,
