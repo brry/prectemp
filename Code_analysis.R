@@ -208,11 +208,12 @@ save(PT, file="dataprods/PT.Rdata")
 
 
 
-# 2. Sample size dependency ----------------------------------------------------
+# 2. SSD: Sample size dependency -----------------------------------------------
 
 load("dataprods/PT.Rdata")
 # All 136k rainfall records between 10 and 12 degrees event dewpoint temperature # ToDo: note in paper
 PREC <- unlist(lapply(PT, function(x) x[x$temp5>10 & x$temp5<12, "prec"] ))
+PREC <- unname(PREC)
 save(PREC, file="dataprods/PREC.Rdata")
 
 hist(PREC, breaks=50, col="deepskyblue1")
@@ -225,6 +226,14 @@ logHist(PREC, breaks=80)
 load("dataprods/PREC.Rdata"); source("Code_aid.R"); library(extremeStat)
 #load("dataprods/dweight.Rdata")
 
+ransam <- function(simn) # random sample generator
+  {
+  set.seed(simn) # reproducible 'random' numbers
+  lapply(aid$n, function(nn) sample(PREC,nn) )
+  }
+  
+d <- ransam(113)[[23]]
+
 # custom weights come from section 2.3, determined from 400 runs (*_firstrun folders)
 # truncation of 80% comes from section 2.4.
 qn <- function(simn)
@@ -236,20 +245,21 @@ qn <- function(simn)
   obname <- paste0("QN",simn)
   fname <- paste0("sim/QN",simn,".Rdata")
   if(file.exists(fname)) return()
-  set.seed(simn) # reproducible 'random' numbers
+  # Quantile estimation function:
+  Qest <- function(x) 
+    extremeStat::distLquantile(x, probs=aid$probs, truncate=0.8, addinfo=TRUE, 
+    sanerange=c(0.4,500), sanevals=c(NA,500), quiet=TRUE, order=FALSE, weightc=NA)#dweight)
+  # random samples
+  rs <- ransam(simn)
   # Hardcore computation returning a 3D array:
-  QN <- vapply(aid$n, function(nn) 
-            {extremeStat::distLquantile(sample(PREC,nn), 
-            probs=aid$probs, truncate=0.8, addinfo=TRUE, weightc=NA,#dweight,
-            quiet=TRUE, time=FALSE, progbars=FALSE, order=FALSE)},
-            FUN.VALUE=array(0, dim=c(38,4)) )
+  QN <- vapply(rs, Qest, FUN.VALUE=array(0, dim=c(38,4)) )
   # Dimnames
   dimnames(QN)[3] <- list(paste(aid$n))
   names(dimnames(QN)) <- c("distr","prob", "n")
   # Saving to disc:
   assign(obname, QN, envir=environment())
   save(list=obname, file=fname)
-  }, tracewarnings=simn<15, file=paste0("simlogs/",simn,".txt")  )
+  }, tracewarnings=simn<15, file=paste0("simlogs/",simn,".txt")  )# tryStack end
   cat("\n------- sim run ", simn, " finish  ", as.character(Sys.time()), " -------\n", 
       file=paste0("simlogs/",simn,".txt"), append=TRUE)
   }
@@ -258,23 +268,18 @@ qn <- function(simn)
 # 400 in 2 hours on 7 cores
 library(parallel) # for parallel lapply execution
 cl <- makeCluster( detectCores()-1 )
-clusterExport(cl, c("aid", "PREC", "qn", "dweight"))
-dummy <- pblapply(X=1:800, cl=cl, FUN=qn)
+clusterExport(cl, c("aid", "PREC", "qn"))#, "dweight"))
+dummy <- pblapply(X=c(131,211,277,278,363), cl=cl, FUN=qn)
 stopCluster(cl)
 rm(cl, dummy)
 
 
 
-
-# 2.2. SSD visualization -------------------------------------------------------
-
-load("sim/QN1.Rdata")
-QN1[c("kap","ln3"),,1:20]
-
+# 2.2. SSD aggregation -------------------------------------------------------
 
 # Read in simulation results (1.4 GB for 2000 simulations!)
 simEnv <- new.env()
-dummy <- pblapply(dir("sim", full=TRUE), load, envir=simEnv)
+dummy <- pblapply(dir("sim", full=TRUE), load, envir=simEnv) # 1 min for 400 sims
 simQ <- as.list(mget(ls(envir=simEnv), envir=simEnv))
 simQ <- l2array(simQ) # this takes a minute, 400MB for 745 sims
 save(simQ, file="dataprods/simQ.Rdata")
@@ -282,22 +287,60 @@ rm(simEnv, dummy)
 
 # aggregate (takes 2 minutes):
 load("dataprods/simQ.Rdata")
-simQA <- pbapply(simQ, MARGIN=1:3, quantileMean, probs=c(0.3,0.5,0.7), na.rm=TRUE)#c(seq(0,1,0.1),0.25,0.75), na.rm=TRUE)
+simQA <- pbapply(simQ, MARGIN=1:3, quantileMean, 
+                 probs=c(seq(0,1,0.1),0.25,0.75), na.rm=TRUE) # c(0.3,0.5,0.7), na.rm=TRUE)
 save(simQA, file="dataprods/simQA.Rdata")
 
+# checks:
 dim(simQA)
 str(simQA)
 dimnames(simQA)
+simQA["0%", ,"99.9%", as.character(40:45)]
+
+which(simQ<0, arr.ind=TRUE) # 209
+dimnames(simQ)[[4]][13]
+str(which(simQ[1:35, , ,]>900, arr.ind=TRUE)) # 12k (45k>200)
+
+toolarge <- which(simQ[1:35,"99%", ,]>500, arr.ind=TRUE)
+toolarge[1:30,]
+summary(toolarge)
+
+table(rownames(which(simQ[1:35, "99%", ,]>500, arr.ind=TRUE)))
+
+simQ[,,13,1]
+
+which(simQ[1:35, , ,]>1e90, arr.ind=TRUE)
+kap <- as.vector(simQ["kap","99.9%",,])
+mean(is.na(kap)) # 6%
+val <- logSpaced(min=120, max=250, n=100, plot=F)
+numlarger <- sapply(val, function(x) sum(kap>x, na.rm=T))
+plot(val, numlarger, log="y", type="o", las=1)
+
+val <- logSpaced(min=50, max=10000, n=30, plot=F)
+numlarger <- pbsapply(val, function(x) sum(simQ[20:35, "99.9%",,]>x, na.rm=T))
+plot(val, numlarger, log="yx", type="o", axes=F, main="Q99.9% GPD estimates larger than val")
+logAxis(1); logAxis(2)
+
+sum(kap>1e5, na.rm=T)# 35
+
+d <- "kap"; ciBand(yl=simQA["10%",d,"99.9%",], ym=simQA["50%",d,"99.9%",], yu=simQA["100%",d,"99.9%",], x=aid$n, colm="blue")
 
 
-# ...work here... -----
-
+# 2.3. Distribution weights ----------------------------------------------------
 
 load("dataprods/simQA.Rdata"); load("dataprods/PREC.Rdata"); source("Code_aid.R")
 
+# _a. bias -----
+# 136k Rainfall hours between 10 and 12 degrees for all stations (PREC)
+Qtrue <- quantileMean(PREC, 0.999)
+drmse <- sapply(dimnames(simQA)[[2]], function(d) rmse(simQA["50%",d,"99.9%",], rep(Qtrue,512)))
+w_bias <- 3-drmse
+w_bias[w_bias<0] <- 0
+w_bias <- w_bias/sum(w_bias)
+
 pdf("fig/simQn.pdf", height=5)
 par(mar=c(3.5,3.5,2,0.5), mgp=c(2.1,0.7,0), las=1)
-dn <- dimnames(simQA)[[2]][1:34]
+dn <- names(sort(drmse))
 dummy <- pblapply(dn, function(d)
   {
   plot(1, type="n", xlim=lim0(800), ylim=c(5,20), log="", main=d, 
@@ -315,21 +358,37 @@ dev.off()
 # ToDo: recreate paper Fig 6 SSD GPD 
 
 
-        
-# 2.3. Distribution weights ----------------------------------------------------
 
-load("dataprods/simQA.Rdata"); load("dataprods/PREC.Rdata"); source("Code_aid.R")
-Qtrue <- quantileMean(PREC, 0.999)
-drmse <- sapply(dimnames(simQA)[[2]][1:17], function(d) rmse(simQA["50%",d,"99.9%",], rep(Qtrue,512)))
-
-dweight <- 3-drmse
-dweight[dweight<0] <- 0
-dweight <- dweight/sum(dweight)
+# _b. goodness of fit -----
 
 library(extremeStat)
 dlf <- distLfit(PREC, truncate=0.8, weightc=dweight)
 dlf$gof
 
+load("dataprods/PT.Rdata")
+PRECstats <- lapply(PT, function(x) x[x$temp5>10 & x$temp5<12, "prec"] )
+dlfstats <- pblapply(PRECstats, distLfit, truncate=0.8, progbars=FALSE, 
+                     time=FALSE, plot=FALSE) # 2 mins with plot, 1 min without
+
+dlfgofs <- lapply(dlfstats, "[[", "gof")
+dlfgofs <- do.call(rbind, dlfgofs)
+dlfgofs$dist <- sapply(strsplit(rownames(dlfgofs), ".", fix=T), "[", 2)
+dn <- unique(dlfgofs$dist)
+dn <- sapply(dn, function(d) mean(dlfgofs[dlfgofs$dist==d, "RMSE"]) )
+dn <- names(sort(dn))
+
+pdf("fig/distribution_gofs.pdf", height=5)
+for(d in dn){
+lh <- logHist(dlfgofs$RMSE, breaks=60, las=1, col=addAlpha("darkorange"), border=NA, main=d)
+logHist(dlfgofs[dlfgofs$dist==d, "RMSE"], breaks=lh$breaks, col=1, logargs=list(xaxt="n"), add=TRUE)
+}
+rm(d)
+dev.off()
+
+
+# _c. error rate -----
+
+# _d. Visualization -----
 save(dweight, file="dataprods/dweight.Rdata")
 
 pdf("fig/distribution_weights.pdf", height=5)
@@ -505,7 +564,7 @@ statav
 }
 
 pdf("fig/PTQ.pdf", height=5)
-# a. empirical and parametric quantiles in one plot ----------------------------
+# _a. empirical and parametric quantiles in one plot ----------------------------
 par(mar=c(4,4,2,0.5), mgp=c(2.5,0.6,0))
 dn <- c("quantileMean", "weighted2")              ### later: use weightedc!
 dc <- addAlpha(c("red", "blue"))
@@ -515,7 +574,7 @@ aid$PTplot(prob=prob)
 dummy <- sapply(PTQ, function(x){
          for(d in 1:2) lines(aid$mid, x[dn[d], prob, ], col=dc[d]) })
 }
-# b. Qemp/par side by side -----------------------------------------------------
+# _b. Qemp/par side by side -----------------------------------------------------
 par(mfrow=c(1,2), mar=c(2,2,1.5,0.5), oma=c(1.5,1.5,1.5,0) )
 for(prob in c("90%", "99%", "99.9%", "99.99%"))
 {
@@ -527,7 +586,7 @@ statav <- PTQlines(prob=prob, dn=dn[d], col=dc[d])
 lines(aid$mid, statav, lwd=2)  
 }}
 #
-# c. PTQ for each distribution function ----------------------------------------
+# _c. PTQ for each distribution function ----------------------------------------
 par(mfrow=c(1,1), mar=c(4,4,2,0.5), oma=c(0,0,0,0) )
 dummy <- pblapply(dimnames(PTQ[[1]])$distr, function(dn){ 
 ylim <- c(5,130)

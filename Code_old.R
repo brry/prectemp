@@ -3,6 +3,13 @@
 # Berry Boessenkool, 2016
 
 
+
+load("sim/QN1.Rdata")
+QN1[c("kap","ln3"),,1:20]
+rm(QN1)
+
+
+
 # Outlier examination -----------------------------------------------------
 load("PT.Rdata") ; source("Code_aid.R")
 cc_outlier = function(temp)
