@@ -38,10 +38,10 @@ browseURL("http://www.nat-hazards-earth-syst-sci-discuss.net/nhess-2016-183")
 # 0. Packages ------------------------------------------------------------------
 if(FALSE){ # You need to download and install the packages only once
 packinst <- function(n) if(!requireNamespace(n, quietly=TRUE)) install.packages(n)
-sapply(c("berryFunctions", "extremeStat", "pblapply", "maps", "gplots",
+sapply(c("berryFunctions", "extremeStat", "pblapply", "maps", "gplots", "gtools",
          "mapdata", "OSMscale", "RCurl"), packinst) 
-berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.13.2 (2016-12-14)
-berryFunctions::instGit("brry/extremeStat")   # must be version >= 0.6.2  (2016-12-14)
+berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.13.5 (2016-12-20)
+berryFunctions::instGit("brry/extremeStat")   # must be version >= 0.6.3  (2016-12-19)
 berryFunctions::instGit("brry/rdwd")  # not yet on CRAN must be >= 0.5.4  (2016-11-25)
 berryFunctions::instGit("brry/OSMscale")      # must be version >= 0.3.12 (2016-11-24)
 }
@@ -226,10 +226,12 @@ logHist(PREC, breaks=80)
 load("dataprods/PREC.Rdata"); source("Code_aid.R"); library(extremeStat)
 #load("dataprods/dweight.Rdata")
 
-ransample <- function(simn) # random sample generator
+ransample <- function(simn, trunc=0) # random sample generator
   {
   set.seed(simn) # reproducible 'random' numbers
-  lapply(aid$n, function(nn) sample(PREC,nn) )
+  out <- lapply(aid$n, function(nn) sample(PREC,nn) )
+  if(trunc>0) out <- lapply(out, function(x) x[x>=quantileMean(x,trunc)])
+  out
   }
   
 # custom weights come from section 2.3, determined from 400 runs (*_firstrun folders)
@@ -246,18 +248,18 @@ qn <- function(simn)
   # Quantile estimation function:
   Qest <- function(x) 
     extremeStat::distLquantile(x, probs=aid$probs, truncate=0.8, addinfo=TRUE, 
-    sanerange=c(0.4,1000), sanevals=c(NA,1000), quiet=TRUE, order=FALSE, weightc=NA)#dweight)
+    quiet=TRUE, order=FALSE, weightc=NA)#dweight)
   # random samples
   rs <- ransample(simn)
   # Hardcore computation returning a 3D array:
-  QN <- vapply(rs, Qest, FUN.VALUE=array(0, dim=c(38,4)) )
+  QN <- vapply(rs, Qest, FUN.VALUE=array(0, dim=c(38,5)) )
   # Dimnames
   dimnames(QN)[3] <- list(paste(aid$n))
   names(dimnames(QN)) <- c("distr","prob", "n")
   # Saving to disc:
   assign(obname, QN, envir=environment())
   save(list=obname, file=fname)
-  }, tracewarnings=simn<15, file=paste0("simlogs/",simn,".txt")  )# tryStack end
+  }, if(simn>15) warn=0, file=paste0("simlogs/",simn,".txt")  )# tryStack end
   cat("\n------- sim run ", simn, " finish  ", as.character(Sys.time()), " -------\n", 
       file=paste0("simlogs/",simn,".txt"), append=TRUE)
   }
@@ -267,9 +269,10 @@ qn <- function(simn)
 library(parallel) # for parallel lapply execution
 cl <- makeCluster( detectCores()-1 )
 clusterExport(cl, c("aid", "PREC", "qn", "ransample"))#, "dweight"))
-dummy <- pblapply(X=c(131,211,277,278,363), cl=cl, FUN=qn)
+dummy <- pblapply(X=1:500, cl=cl, FUN=qn)
 stopCluster(cl)
 rm(cl, dummy)
+rm(qn, ransample)
 
 
 
@@ -277,32 +280,37 @@ rm(cl, dummy)
 
 # Read in simulation results (1.4 GB for 2000 simulations!)
 simEnv <- new.env()
-dummy <- pblapply(dir("sim", full=TRUE), load, envir=simEnv) # 1 min for 400 sims
-simQ <- as.list(mget(ls(envir=simEnv), envir=simEnv))
+dummy <- pblapply(dir("sim", full=TRUE), load, envir=simEnv) # 6 secs / 1 min for 500 sims
+simQ <- as.list(mget(gtools::mixedsort(ls(envir=simEnv)), envir=simEnv))
 simQ <- l2array(simQ) # this takes a minute, 400MB for 745 sims
 save(simQ, file="dataprods/simQ.Rdata")
 rm(simEnv, dummy)
 
-# aggregate (takes 2 minutes):
+# aggregate (2 minutes for 500 runs):
 load("dataprods/simQ.Rdata")
 simQA <- pbapply(simQ, MARGIN=1:3, quantileMean, 
-                 probs=c(seq(0,1,0.1),0.25,0.75), na.rm=TRUE) # c(0.3,0.5,0.7), na.rm=TRUE)
+                 probs=c(seq(0,1,0.1),0.25,0.75), na.rm=TRUE) 
+                #probs=c(0.3,0.5,0.7), na.rm=TRUE)
 save(simQA, file="dataprods/simQA.Rdata")
+load("dataprods/simQA.Rdata")
 
 # checks:
 dim(simQA)
 str(simQA)
 dimnames(simQA)
 simQA["0%", ,"99.9%", as.character(40:45)]
-which(simQ<0, arr.ind=TRUE) # 209
-dimnames(simQ)[[4]][13]
-str(which(simQ[1:35, , ,]>900, arr.ind=TRUE)) # 12k (45k>200)
-toolarge <- which(simQ[1:35,"99%", ,]>500, arr.ind=TRUE)
-toolarge[1:30,]
-summary(toolarge)
 
-table(rownames(which(simQ[1:35, "99%", ,]>500, arr.ind=TRUE)))
-simQ[,,13,1]
+which(simQ<0, arr.ind=TRUE) # some laplace
+simQ[which(simQ<0)] # nothing really bad
+which(simQ[,1:4,,]<0.5, arr.ind=TRUE)
+which(simQ["kap", "99.9%", ,]>200, arr.ind=TRUE) # 2
+str(which(simQ[1:35, , ,]>900, arr.ind=TRUE)) # 12k (45k>200) at 400 sims
+toolarge <- which(simQ[1:35,"99%", ,]>500, arr.ind=TRUE)
+head(toolarge)
+table(rownames(toolarge))
+
+sort(table(rownames(which(simQ[1:35, "99%", ,]>100, arr.ind=TRUE))))
+apply(simQ[1:35, "99%", ,], MARGIN=1, function(x) length(which(x>100)) )
 
 kap <- as.vector(simQ["kap","99.9%",,])
 val <- logSpaced(min=120, max=250, n=100, plot=F)
@@ -323,23 +331,29 @@ load("dataprods/simQA.Rdata"); load("dataprods/PREC.Rdata"); source("Code_aid.R"
 # _a. bias -----
 # 136k Rainfall hours between 10 and 12 degrees for all stations (PREC)
 Qtrue <- quantileMean(PREC, 0.999)
-drmse <- sapply(dimnames(simQA)[[2]], function(d) rmse(simQA["50%",d,"99.9%",], rep(Qtrue,512)))
-w_bias <- 3-drmse
+drmse <- sapply(dimnames(simQA)[[2]][1:35], function(d) rmse(simQA["50%",d,"99.9%",], rep(Qtrue,512)))
+w_bias <- 3-drmse[1:17]
 w_bias[w_bias<0] <- 0
 w_bias <- w_bias/sum(w_bias)
 
 pdf("fig/simQn.pdf", height=5)
 par(mar=c(3.5,3.5,2,0.5), mgp=c(2.1,0.7,0), las=1)
-dn <- names(sort(drmse))
+dn <- c(names(sort(drmse)),"")#[1:2]
+dcol <- rep("grey80", length(dn))
+names(dcol) <- dn
+dcol[grepl("GPD_", dn)] <- addAlpha("red")
 dummy <- pblapply(dn, function(d)
   {
-  plot(1, type="n", xlim=lim0(800), ylim=c(5,20), log="", main=d, 
+  plot(1, type="n", xlim=c(24,1900), ylim=c(5,20), log="x", xaxs="i", main=d, xaxt="n",
        xlab="sample size", ylab="Random sample 99.9% quantile estimate")
-  for(dd in dn) lines(aid$n, simQA["50%",dd,"99.9%",], col="grey80")
+  logAxis(1)
+  for(dd in dn[dn!=""]) lines(aid$n, simQA["50%",dd,"99.9%",], col=dcol[dd])
   abline(h=quantileMean(PREC, 0.999), lty=3)
+  if(dn=="") return()
   ciBand(yl=simQA["30%",d,"99.9%",], 
          ym=simQA["50%",d,"99.9%",],
          yu=simQA["70%",d,"99.9%",], x=aid$n, colm="blue", add=TRUE)
+  title(main=round(drmse[d],2), adj=0)
 })
 rm(dummy)
 dev.off()
@@ -387,6 +401,10 @@ w_error <- apply(simQ, 1, function(x) mean(is.na(x)))
 dn <- names(sort(w_error))
 
 
+NAs <- apply(simQ[1:35, "99%", ,], MARGIN=1, function(x) mean(is.na(x))*100)
+data.frame(NA_percent=sort(NAs))
+
+
 pdf("fig/distribution_errorrates.pdf", height=5)
 dummy <- pblapply(dn, function(d)
 {
@@ -407,7 +425,7 @@ save(dweight, file="dataprods/dweight.Rdata")
 pdf("fig/distribution_weights.pdf", height=5)
 distLgofPlot(dlf, ranks=FALSE, lwd=1.5)
 barplot(sort(drmse), horiz=TRUE, las=1, main="Deviation from true quantile (RMSE along sample sizes)")
-barplot(sort(dweight), horiz=TRUE, las=1, main="Relative weights")
+barplot(sort(w_bias), horiz=TRUE, las=1, main="Relative weights")
 dev.off()
 
 
