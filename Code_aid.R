@@ -55,7 +55,7 @@ dewtemp2=function(airtemp, relhum)
 
 # mid --------------------------------------------------------------------------
 # midpoints of temperature bins
-mid = seq(5, 25, by=0.1)
+mid = seq(2.8, 25, by=0.1)
 ,
 
 # sample sizes -----------------------------------------------------------------
@@ -122,7 +122,8 @@ onlymap=FALSE,
        },
        x1=0, x2=0.17, y1=0.70, y2=1, mar=rep(0,4), bg="white")
   } # end station plot
-
-# xxx --------------------------------------------------------------
-
+,
+# load --------------------------------------------------------------
+load = function(...) dummy <- pbapply::pbsapply(list(...), function(x) 
+  load(paste0("dataprods/",x,".Rdata"), envir=globalenv() ))
 )

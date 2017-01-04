@@ -459,7 +459,7 @@ dev.off()
 
 # 2.6. Sample size bias lin vs log ---------------------------------------------
 
-load("dataprods/PREC.Rdata"); source("Code_aid.R")
+source("Code_aid.R"); aid$load("PREC")
 # lower n-dependency if log10(randomsample) is used for fitting:
 log_n <- c(25:100,seq(150,500, by=50))
 log_qn <- function(...) berryFunctions::tryStack( vapply(log_n, function(nn){
@@ -479,8 +479,7 @@ log_QN <- pblapply(X=1:800, cl=cl, FUN=log_qn)
 save(log_n, log_QN, file="dataprods/log_QN.Rdata")
 stopCluster(cl) ; rm(cl)
 
-
-load("dataprods/log_QN.Rdata") ; load("dataprods/PREC.Rdata")
+source("Code_aid.R"); aid$load("log_QN", "PREC")
 log_QNA <- l2array( log_QN[sapply(log_QN, class)=="array"] )
 log_QNAg <- pbapply(log_QNA, MARGIN=1:3, quantileMean, probs=c(seq(0,1,0.1),0.25,0.75), na.rm=TRUE)
 
@@ -510,7 +509,8 @@ dev.off()
 
 # 3.1. Raw data visualisation --------------------------------------------------
 
-load("dataprods/meta.Rdata"); load("dataprods/PT.Rdata"); source("Code_aid.R")
+source("Code_aid.R"); aid$load("meta", "PT")
+
 range(sapply(PT, function(x)   max(x$prec, na.rm=T))) # 21.5 80.8
 range(sapply(PT, function(x) range(x$temp, na.rm=T))) # -16.4  34.6
 range(sapply(PT, function(x) range(x$temp5,na.rm=T))) # -21.3  29.8
@@ -552,10 +552,8 @@ rm(dummy, map)
 
 # 3.2. PT-quantiles computation ------------------------------------------------
 
-load("dataprods/PT.Rdata"); source("Code_aid.R") # mid, probs
-load("dataprods/cweights.Rdata")
+source("Code_aid.R"); aid$load("PT", "cweights")
 
-# Change aid$mid to start at 4.8 for plotting, change 201 to 203
 
 # long computing time (1 minute per station)
 library(parallel) # for parallel lapply execution
@@ -571,7 +569,7 @@ PTQ <- pblapply(X=1:142, cl=cl, FUN=function(i)
                   weightc=NA, order=FALSE, ssquiet=TRUE, time=FALSE, progbars=FALSE)
     })
   # Transform into array for faster subsetting:
-  binQ2 <- array(unlist(binQ), dim=c(38, 4, 201),  # c(nrow(binQ[[1]]), ncol(binQ[[1]]), length(binQ))
+  binQ2 <- array(unlist(binQ), dim=c(38, 4, 203),  # c(nrow(binQ[[1]]), ncol(binQ[[1]]), length(binQ))
        dimnames=list(distr=rownames(binQ[[1]]), prob=colnames(binQ[[1]]), temp=aid$mid))
   return(binQ2)
   })
@@ -580,7 +578,7 @@ stopCluster(cl)
 rm(cl)
 
 length(PTQ) # 142 stations
-str(PTQ[[1]]) # each at 201 temperature bins
+str(PTQ[[1]]) # each at 203 temperature bins
 aid$mid[100] # for 14.9 °C:
 PTQ[[1]][,,100]
 
@@ -591,7 +589,7 @@ rm(n113)
 
 
 # 3.3. PT-quantiles visualization ----------------------------------------------
-load("dataprods/PTQ.Rdata"); source("Code_aid.R")
+source("Code_aid.R"); aid$load("PTQ")
 
 PTQlines <- function(
 prob="",  
@@ -656,9 +654,8 @@ dev.off()
 
 # 3.4. PTQ per station ---------------------------------------------------------
 
-load("dataprods/PTQ.Rdata"); load("dataprods/PT.Rdata"); load("dataprods/meta.Rdata"); source("Code_aid.R")
+source("Code_aid.R"); aid$load("PTQ", "PT", "meta")
 library("mapdata") ;  map <- maps::map('worldHires','Germany') ;  dev.off()
-
 
 dn <- c("quantileMean","weighted2","gpa", "wak")
 dc <- c("brown1", "deepskyblue4", "darkolivegreen4", "peru")
