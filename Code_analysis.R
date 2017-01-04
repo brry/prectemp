@@ -274,7 +274,7 @@ qn <- function(simn)
   # Saving to disc:
   assign(obname, QN, envir=environment())
   save(list=obname, file=fname)
-  }, if(simn>15) warn=0, file=paste0("simlogs/",simn,".txt")  )# tryStack end
+  }, file=paste0("simlogs/",simn,".txt")  )# tryStack end
   cat("\n------- sim run ", simn, " finish  ", as.character(Sys.time()), " -------\n", 
       file=paste0("simlogs/",simn,".txt"), append=TRUE)
   }
@@ -282,9 +282,9 @@ qn <- function(simn)
 # long computing time (2-2.5 minutes per simulation run):
 # 400 in 2 hours on 7 cores
 library(parallel) # for parallel lapply execution
-cl <- makeCluster( detectCores()-1 )
+cl <- makeCluster( detectCores()-2 )
 clusterExport(cl, c("aid", "PREC", "qn", "ransample"))#, "dweight"))
-dummy <- pblapply(X=1:500, cl=cl, FUN=qn)
+dummy <- pblapply(X=1:400, cl=cl, FUN=qn)
 stopCluster(cl)
 rm(cl, dummy)
 rm(qn, ransample)
@@ -312,7 +312,15 @@ load("dataprods/simQA.Rdata")
 
 # checks:
 str(simQ)
-sort(table(rownames(which(simQ[1:35, "99.9%", ,]>500, arr.ind=TRUE))))
+sort(table(rownames(which(simQ[1:35, , ,]>400, arr.ind=TRUE))))
+
+large <- c(1:10*100)
+toolarge <- pbsapply(large, function(l) 
+                     apply(simQ[1:35, , ,], 1, function(x) sum(x>l,na.rm=TRUE)) )
+colnames(toolarge) <- large
+plot(large, colSums(toolarge), type="b", log="y", ylim=c(1,1e5), axes=FALSE)
+logAxis(2); axis(1)
+for(i in 1:35) lines(large, toolarge[i,])
 
 
 dim(simQA)
@@ -343,109 +351,124 @@ logAxis(1); logAxis(2)
 
 # 2.3. Distribution weights ----------------------------------------------------
 
-load("dataprods/simQA.Rdata"); load("dataprods/PREC.Rdata"); source("Code_aid.R")
-
-# _a. bias -----
+source("Code_aid.R"); aid$load("simQ", "PREC")
 # 136k Rainfall hours between 10 and 12 degrees for all stations (PREC)
-Qtrue <- quantileMean(PREC, 0.999)
-drmse <- sapply(dimnames(simQA)[[2]][1:35], function(d) rmse(simQA["50%",d,"99.9%",], rep(Qtrue,512)))
-w_bias <- 3-drmse[1:17]
-w_bias[w_bias<0] <- 0
-w_bias <- w_bias/sum(w_bias)
+Qtrue <- quantileMean(PREC, aid$probs); rm(PREC)
+target <- c(4,dim(simQ)[3:4])
+Qtrue <- array(rep(Qtrue, prod(target)), dim=target) ; rm(target)
 
-pdf("fig/simQn.pdf", height=5)
-par(mar=c(3.5,3.5,2,0.5), mgp=c(2.1,0.7,0), las=1)
-dn <- c(names(sort(drmse)),"")#[1:2]
-dcol <- rep("grey80", length(dn))
-names(dcol) <- dn
-dcol[grepl("GPD_", dn)] <- addAlpha("red")
-dummy <- pblapply(dn, function(d)
-  {
-  plot(1, type="n", xlim=c(24,1900), ylim=c(5,20), log="x", xaxs="i", main=d, xaxt="n",
-       xlab="sample size", ylab="Random sample 99.9% quantile estimate")
-  logAxis(1)
-  for(dd in dn[dn!=""]) lines(aid$n, simQA["50%",dd,"99.9%",], col=dcol[dd])
-  abline(h=quantileMean(PREC, 0.999), lty=3)
-  if(dn=="") return()
-  ciBand(yl=simQA["30%",d,"99.9%",], 
-         ym=simQA["50%",d,"99.9%",],
-         yu=simQA["70%",d,"99.9%",], x=aid$n, colm="blue", add=TRUE)
-  title(main=round(drmse[d],2), adj=0)
-})
-rm(dummy)
+# rebrand implausible estimates as error (otherwise bias becomes Inf)
+simQ[1:35,,,][simQ[1:35,,,]>800] <- NA
+
+# bias:
+bias <- apply(simQ[1:35,1:4,,], 1, function(x) median(abs(x-Qtrue), na.rm=TRUE))
+d_weights <- data.frame(bias)
+rm(Qtrue, bias)
+
+# goodness of fit:
+d_weights$gof <- apply(simQ[1:35,"RMSE",,], 1, median, na.rm=TRUE)
+
+# error rate:
+d_weights$error <- apply(simQ[1:35,1:4,,], 1, function(x) mean(is.na(x))) #proportion
+
+d_weights2 <- d_weights[rownames(d_weights) !="weightedc",]
+d_weights2 <- d_weights2[rownames(d_weights2) !="GPD_BAY_extRemes",]
+d_weights2 <- as.data.frame(apply(d_weights2, 2, function(x) x/sum(x,na.rm=TRUE)))
+d_weights2$mean <- rowMeans(d_weights2, na.rm=TRUE)
+d_weights2 <- sortDF(d_weights2, "mean", decreasing=FALSE)
+d_weights2$mean <- NULL
+
+d_weights_dn <- d_weights2[rownames(d_weights2) %in% lmomco::dist.list(),]
+d_weights_dn <- as.data.frame(apply(d_weights_dn, 2, function(x) x/sum(x)))
+
+weights <- 0.07-rowMeans(d_weights_dn)
+weights[weights<0] <- 0
+weights <- weights/sum(weights)
+#save(weights, file="dataprods/weights.Rdata")
+
+         
+# _ Visualization: -------
+pdf("fig/d_weights.pdf")
+cols <- RColorBrewer::brewer.pal(3, "Set2")
+par(mar=c(2,11,3,1), mgp=c(3,0.2,0))
+barplot(t(replace(d_weights2, is.na(d_weights2), 0)[,1:3]), horiz=T, las=1, col=cols, xaxt="n")
+labels <- c("Bias", "Badness of Fit", "Error rate")
+legend("top", labels, fill=cols, horiz=TRUE, 
+       bty="n", text.width=strwidth(labels)+strwidth("mmm")*c(1.2,1,1), inset=-0.05, xpd=TRUE)
+rm(labels)
+axis(1, mgp=c(3,0.8,0))
+par(mfrow=c(1,2), mar=c(2,4,3,1), mgp=c(3,0.2,0))
+barplot(t(d_weights_dn[,1:3]), horiz=T, las=1, col=cols, xaxt="n")
+labels <- c("Bias", "Badness of Fit", "Error rate")
+legend("top", labels, fill=cols, horiz=TRUE, 
+       bty="n", text.width=strwidth(labels)+strwidth("mm")*c(1.2,1,0.9), inset=-0.05, xpd=TRUE)
+rm(labels)
+axis(1, mgp=c(3,0.8,0))
+barplot(weights, horiz=TRUE, las=1, main="Weights", xaxt="n")
+axis(1, mgp=c(3,0.8,0)) # , at=seq(0,0.06, 0.02)
+rm(cols)
 dev.off()
+
+aid$load("simQA", "PREC")
+dn <- rownames(d_weights2)
+dcol <- rep("grey80", length(dn)) ; names(dcol) <- dn
+dcol[grepl("GPD_", dn)] <- addAlpha("red")
+simNA <- apply(simQ[,1:4,,], 1:3, function(x) mean(is.na(x)))
+
+pdf("fig/d_biasgoferror.pdf", height=5)
+par(mfrow=c(2,2), mar=c(3.5,3.5,2,1), mgp=c(2,0.7,0), oma=c(0,0,2,0), las=1)
+dummy <- pblapply( c(dn, "", names(weights)), function(d){
+# bias:
+  for(qi in 1:2){
+  qn <- c("99%","99.9%")[qi]
+  plot(1, type="n", xlim=c(24,1900), ylim=c(5,c(10,20)[qi]), 
+       log="x", xaxs="i", main=paste("bias", qn), xaxt="n",
+       xlab="sample size", ylab="Random sample quantile")
+  logAxis(1)
+  for(dd in dn) lines(aid$n, simQA["50%",dd,qn,], col=dcol[dd])
+  rm(dd)
+  abline(h=quantileMean(PREC, c(0.99,0.999)[qi]), lty=3)
+  if(d!=""){
+  ciBand(yl=simQA["30%",d,qn,], 
+         ym=simQA["50%",d,qn,],
+         yu=simQA["70%",d,qn,], x=aid$n, colm="blue", add=TRUE)
+  if(qi==1) title(main=round(d_weights[d,"bias"],2), adj=0)
+  }
+  }
+# gof:
+  lh <- logHist(simQ[1:17,"RMSE",,], breaks=60, las=1, col=addAlpha("darkorange"), 
+                ylab="Density", border=NA, xlim=log10(c(0.002, 0.1)), 
+                main="gof", xlab="", yaxt="n")
+  title(xlab="Distribution goodness of fit: RMSE(CDF,ECDF)", xpd=TRUE)
+  logHist(simQ[23:35,"RMSE",,], breaks=lh$breaks, col=addAlpha("red"), 
+          logargs=list(xaxt="n"), border=NA, add=TRUE)
+  if(d!="") 
+  {
+  logHist(simQ[d,"RMSE",,], breaks=lh$breaks, col=1, logargs=list(xaxt="n"), add=TRUE)
+  title(main=round(d_weights[d,"gof"],4), adj=0) # median
+  }
+  # title(main=round(mean(simQ[d,"RMSE",,],na.rm=TRUE),4), adj=1) # mean
+# error:
+  plot(1, xlim=c(25,800), ylim=lim0(0.7), type="n", log="x", xaxt="n", 
+       xlab="Sample size", ylab="Proportion of NAs", las=1)
+  logAxis(1)
+  title(main="error")
+  for(dd in dn) for(p in names(aid$probcols)) lines(aid$n, simNA[dd,p,], col=dcol[dd])
+  if(d!="") 
+  {
+  for(p in names(aid$probcols)) lines(aid$n, simNA[d,p,], col="blue")
+  title(main=paste0(round(mean(simNA[d,,])*100,2),"%"), adj=0)
+  }
+#
+title(main=d, outer=TRUE)
+})
+dev.off()
+
+rm(dn, dcol, simNA, dummy)
+
 
 # ToDo: paper Fig 5 + 6_potsdamQn
 # ToDo: recreate paper Fig 6 SSD GPD 
-
-
-
-# _b. goodness of fit -----
-
-library(extremeStat)
-dlf <- distLfit(PREC, truncate=0.8, weightc=dweight)
-dlf$gof
-
-load("dataprods/PT.Rdata")
-PRECstats <- lapply(PT, function(x) x[x$temp5>10 & x$temp5<12, "prec"] )
-dlfstats <- pblapply(PRECstats, distLfit, truncate=0.8, progbars=FALSE, 
-                     time=FALSE, plot=FALSE) # 2 mins with plot, 1 min without
-
-dlfgofs <- lapply(dlfstats, "[[", "gof")
-dlfgofs <- do.call(rbind, dlfgofs)
-dlfgofs$dist <- sapply(strsplit(rownames(dlfgofs), ".", fix=T), "[", 2)
-dn <- unique(dlfgofs$dist)
-dn <- sapply(dn, function(d) mean(dlfgofs[dlfgofs$dist==d, "RMSE"]) )
-dn <- names(sort(dn))
-
-pdf("fig/distribution_gofs.pdf", height=5)
-for(d in dn){
-lh <- logHist(dlfgofs$RMSE, breaks=60, las=1, col=addAlpha("darkorange"), border=NA, main=d)
-logHist(dlfgofs[dlfgofs$dist==d, "RMSE"], breaks=lh$breaks, col=1, logargs=list(xaxt="n"), add=TRUE)
-}
-rm(d)
-dev.off()
-
-
-# _c. error rate -----
-
-load("dataprods/simQ.Rdata"); source("Code_aid.R")
-simQ[simQ<0.5] <- NA
-simQ[1:35,,,][simQ[1:35,,,]>200] <- NA
-
-simNA <- apply(simQ, 1:3, function(x) mean(is.na(x)))
-w_error <- apply(simQ, 1, function(x) mean(is.na(x)))
-dn <- names(sort(w_error))
-
-
-NAs <- apply(simQ[1:35, "99%", ,], MARGIN=1, function(x) mean(is.na(x))*100)
-data.frame(NA_percent=sort(NAs))
-
-
-pdf("fig/distribution_errorrates.pdf", height=5)
-dummy <- pblapply(dn, function(d)
-{
-plot(1, xlim=c(25,2000), ylim=lim0(0.7), type="n", log="x", xaxt="n", 
-     xlab="Sample size", ylab="Proportion of NAs across simulations", las=1)
-logAxis(1)
-title(main=d)
-for(dd in dn) for(p in names(aid$probcols)) lines(aid$n, simNA[dd,p,], col=8)
-for(p in names(aid$probcols)) lines(aid$n, simNA[d,p,], col=aid$probcols[p])
-})
-rm(dummy)
-dev.off()
-
-
-# _d. Visualization -----
-save(dweight, file="dataprods/dweight.Rdata")
-
-pdf("fig/distribution_weights.pdf", height=5)
-distLgofPlot(dlf, ranks=FALSE, lwd=1.5)
-barplot(sort(drmse), horiz=TRUE, las=1, main="Deviation from true quantile (RMSE along sample sizes)")
-barplot(sort(w_bias), horiz=TRUE, las=1, main="Relative weights")
-dev.off()
-
-
 
 
 # 2.4. Truncation dependency ---------------------------------------------------

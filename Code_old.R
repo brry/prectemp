@@ -4,6 +4,62 @@
 
 
 
+# bias:
+d_bias <- sapply(dimnames(simQA)[[2]][1:35], function(d) 
+  rmse(simQA["50%",d,"99.9%",], rep(quantileMean(PREC, 0.999),512)))
+w_bias <- d_bias["kap"]-d_bias[1:17]
+w_bias[w_bias<0] <- 0
+w_bias <- w_bias/sum(w_bias)
+
+# goodness of fit:
+d_gof <- apply(simQ[1:35,"RMSE",,], 1, mean, na.rm=TRUE)
+w_gof <- d_gof[1:17]
+w_gof <- w_gof/sum(w_gof)
+
+# error rate:
+simQ[1:35,,,][simQ[1:35,,,]>500] <- NA
+d_error <- apply(simQ[1:35,1:4,,], 1, function(x) mean(is.na(x)))
+w_error <- 0.02-d_error[1:17]
+w_error[w_error<0] <- 0
+w_error <- w_error/sum(w_error)
+
+# total weights (for all dists, incl. GPD_):
+d_weights <- data.frame(d_bias, d_gof, d_error)
+d_weights <- d_weights[rownames(d_weights) !="weightedc",]
+d_weights <- d_weights[rownames(d_weights) !="GPD_BAY_extRemes",]
+d_weights <- apply(d_weights, 2, function(x) x/sum(x,na.rm=TRUE)*100)
+d_weights <- as.data.frame(d_weights)
+d_weights$mean <- rowMeans(d_weights, na.rm=TRUE)
+d_weights <- sortDF(d_weights, "mean", decreasing=FALSE)
+
+
+
+# _b. goodness of fit -----
+
+#dlf <- extremeStat::distLfit(PREC, truncate=0.8)
+#dlf$gof
+
+load("dataprods/PT.Rdata")
+PRECstats <- lapply(PT, function(x) x[x$temp5>10 & x$temp5<12, "prec"] )
+dlfstats <- pblapply(PRECstats, distLfit, truncate=0.8, progbars=FALSE, 
+                     time=FALSE, plot=FALSE) # 2 mins with plot, 1 min without
+dlfgofs <- lapply(dlfstats, "[[", "gof")
+dlfgofs <- do.call(rbind, dlfgofs)
+dlfgofs$dist <- sapply(strsplit(rownames(dlfgofs), ".", fix=T), "[", 2)
+dn <- unique(dlfgofs$dist)
+dn <- sapply(dn, function(d) mean(dlfgofs[dlfgofs$dist==d, "RMSE"]) )
+dn <- names(sort(dn))
+
+pdf("fig/distribution_gofs_stations.pdf", height=5)
+for(d in dn){
+lh <- logHist(dlfgofs$RMSE, breaks=60, las=1, col=addAlpha("darkorange"), border=NA, main=d)
+logHist(dlfgofs[dlfgofs$dist==d, "RMSE"], breaks=lh$breaks, col=1, logargs=list(xaxt="n"), add=TRUE)
+}
+rm(d)
+dev.off()
+
+
+
 load("sim/QN1.Rdata")
 QN1[c("kap","ln3"),,1:20]
 rm(QN1)
