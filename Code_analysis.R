@@ -219,12 +219,27 @@ save(PREC, file="dataprods/PREC.Rdata")
 hist(PREC, breaks=50, col="deepskyblue1")
 logHist(PREC)
 logHist(PREC, breaks=80)
+binprec <- function(temp, ...)
+  {
+  bin <- temp+c(-1,1)
+  PREC <- unlist(lapply(PT, function(x) x[x$temp5>bin[1] & x$temp5<bin[2], "prec"] ))
+  logHist(PREC, breaks=80, main=paste0("Histogramm of all hourly rainfall ",
+          "records at 142 stations in ", formatC(round(temp,1), format="f", digits=1),
+          "\U{00B0}C bin"), xlab="Precipitation  [mm/h]", ...)
+  title(sub=format(length(PREC), big.mark="'"), adj=1)
+  d <- density(log10(PREC))
+  lines(d$x, d$y*4)
+  invisible(PREC)
+  }
 
+pdf("fig/binprec.pdf", height=5)
+allprecs <- pblapply(seq(-11,23,0.2), binprec, xlim=log10(c(0.5,80)), 
+                     ylim=lim0(6), col="deepskyblue1", freq=FALSE)
+dev.off()
 
 # 2.1. SSD computation ---------------------------------------------------------
 
-load("dataprods/PREC.Rdata"); source("Code_aid.R"); library(extremeStat)
-#load("dataprods/dweight.Rdata")
+source("Code_aid.R"); aid$load("PREC"); library(extremeStat)
 
 ransample <- function(simn, trunc=0) # random sample generator
   {
