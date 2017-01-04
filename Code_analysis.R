@@ -40,8 +40,8 @@ if(FALSE){ # You need to download and install the packages only once
 packinst <- function(n) if(!requireNamespace(n, quietly=TRUE)) install.packages(n)
 sapply(c("berryFunctions", "extremeStat", "pblapply", "maps", "gplots", "gtools",
          "mapdata", "OSMscale", "RCurl"), packinst) 
-berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.13.5 (2016-12-20)
-berryFunctions::instGit("brry/extremeStat")   # must be version >= 0.6.3  (2016-12-19)
+berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.13.10(2017-01-03)
+berryFunctions::instGit("brry/extremeStat")   # must be version >= 1.2.12 (2017-01-04)
 berryFunctions::instGit("brry/rdwd")  # not yet on CRAN must be >= 0.5.4  (2016-11-25)
 berryFunctions::instGit("brry/OSMscale")      # must be version >= 0.3.12 (2016-11-24)
 }
@@ -262,7 +262,7 @@ qn <- function(simn)
   if(file.exists(fname)) return()
   # Quantile estimation function:
   Qest <- function(x) 
-    extremeStat::distLquantile(x, probs=aid$probs, truncate=0.8, addinfo=TRUE, 
+    extremeStat::distLquantile(x, probs=aid$probs, truncate=0.8, 
     quiet=TRUE, order=FALSE, weightc=NA)#dweight)
   # random samples
   rs <- ransample(simn)
@@ -309,7 +309,12 @@ simQA <- pbapply(simQ, MARGIN=1:3, quantileMean,
 save(simQA, file="dataprods/simQA.Rdata")
 load("dataprods/simQA.Rdata")
 
+
 # checks:
+str(simQ)
+sort(table(rownames(which(simQ[1:35, "99.9%", ,]>500, arr.ind=TRUE))))
+
+
 dim(simQA)
 str(simQA)
 dimnames(simQA)
@@ -323,9 +328,6 @@ str(which(simQ[1:35, , ,]>900, arr.ind=TRUE)) # 12k (45k>200) at 400 sims
 toolarge <- which(simQ[1:35,"99%", ,]>500, arr.ind=TRUE)
 head(toolarge)
 table(rownames(toolarge))
-
-sort(table(rownames(which(simQ[1:35, "99%", ,]>100, arr.ind=TRUE))))
-apply(simQ[1:35, "99%", ,], MARGIN=1, function(x) length(which(x>100)) )
 
 kap <- as.vector(simQ["kap","99.9%",,])
 val <- logSpaced(min=120, max=250, n=100, plot=F)
