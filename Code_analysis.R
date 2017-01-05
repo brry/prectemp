@@ -509,47 +509,71 @@ rm(dn, dcol, simNA, dummy)
 
 source("Code_aid.R"); aid$load("PREC")
 # lower n-dependency if log10(randomsample) is used for fitting:
-log_n <- c(25:100,seq(150,500, by=50))
-log_qn <- function(...) berryFunctions::tryStack( vapply(log_n, function(nn){
-    ransam <- sample(PREC,nn)
+log_n <- c(25:100,seq(150,550, by=50))
+log_qn <- function(simnr) berryFunctions::tryStack( vapply(log_n, function(nn){
+    set.seed(simnr); ransam <- sample(PREC,nn)
     lin <- extremeStat::distLquantile(ransam, sel=c("wak","gpa"), probs=aid$probs, 
-    truncate=0.8, addinfo=FALSE, weighted=FALSE, gpd=FALSE, order=FALSE, quiet=TRUE)
+    truncate=0.8, weighted=FALSE, gpd=FALSE, order=FALSE, quiet=TRUE)
     log <- extremeStat::distLquantile(log10(ransam), sel=c("wak","gpa"), probs=aid$probs, 
-    truncate=0.8, addinfo=FALSE, weighted=FALSE, gpd=FALSE, order=FALSE, quiet=TRUE)
+    truncate=0.8, weighted=FALSE, gpd=FALSE, order=FALSE, quiet=TRUE)
     rownames(log) <- paste0("log_",rownames(log))
-    rbind(lin,log) }, FUN.VALUE=array(0, dim=c(6,4)) ), silent=TRUE)
+    rbind(lin[1:3,1:4],log[1:3,1:4]) }, FUN.VALUE=array(0, dim=c(6,4)) ), silent=TRUE)
 
-# 80? runs per minute on 4 cores:
+# 80? runs per minute on 4 cores, 100 on 8:
 library(parallel)
-cl <- makeCluster( detectCores()-0 )
+cl <- makeCluster( detectCores()-1 )
 clusterExport(cl, c("PREC", "log_qn", "aid", "log_n"))
-log_QN <- pblapply(X=1:800, cl=cl, FUN=log_qn)
+log_QN <- pblapply(X=1:1000, cl=cl, FUN=log_qn)
 save(log_n, log_QN, file="dataprods/log_QN.Rdata")
 stopCluster(cl) ; rm(cl)
+rm(log_qn)
 
 source("Code_aid.R"); aid$load("log_QN", "PREC")
 log_QNA <- l2array( log_QN[sapply(log_QN, class)=="array"] )
 log_QNAg <- pbapply(log_QNA, MARGIN=1:3, quantileMean, probs=c(seq(0,1,0.1),0.25,0.75), na.rm=TRUE)
 
-log_plot <- function(d, fun=I, ...) 
-  {
-  ciBand(yl=fun(log_QNAg["30%",d,"99.9%",]), xlab="Sample size", ylim=c(0.7,1.8),
-         ym=fun(log_QNAg["50%",d,"99.9%",]), yaxt="n", 
-         yu=fun(log_QNAg["70%",d,"99.9%",]), x=log_n, ...)
-  logAxis(2)
-  abline(h=c(quantileMean(PREC,0.999), quantileMean(log10(PREC),0.999)), lty=3)
-  legend("topright", d, bty="n", inset=0.04)
-  }
+log_plot <- function(d, fun=I, qn="99.9%", ...) 
+  ciBand(yl=fun(log_QNAg["30%",d,qn,]), xlab="Sample size",
+         ym=fun(log_QNAg["50%",d,qn,]), yaxt="n", 
+         yu=fun(log_QNAg["70%",d,qn,]), x=log_n, ...)
 
 pdf("fig/loglin_samplesizedependency.pdf", height=5)
-par(mfrow=c(1,2), mar=c(3,3,2,0.4), mgp=c(1.9,0.6,0))
-log_plot("wak", fun=log10,          ylab="log( distLquantile(sample) )", main="linear")
-log_plot("log_wak",                 ylab="distLquantile( log(sample) )", main="logarithmic")
-log_plot("gpa", fun=log10,          ylab="log( distLquantile(sample) )", main="linear")
-log_plot("log_gpa",                 ylab="distLquantile( log(sample) )", main="logarithmic")
-log_plot("quantileMean", fun=log10, ylab="log( distLquantile(sample) )", main="linear")
-log_plot("log_quantileMean",        ylab="distLquantile( log(sample) )", main="logarithmic")
+for(qi in 1:4){
+qn <- c("90%","99%","99.9%","99.99%")[qi]
+qq <- aid$probs[qi]
+ylim <- c(c(0.2,0.7,0.7,0.7)[qi], c(1,1,1.8,1.8)[qi])
+par(mfrow=c(1,2), mar=c(3,3,2,0.4), mgp=c(1.9,0.6,0), lend=1, las=1)
+log_plot("quantileMean", fun=log10, qn=qn, ylab="log( distLquantile(sample) )", 
+         main="linear", ylim=ylim)
+log_plot("wak", fun=log10, qn=qn, colm="blue", add=TRUE)
+log_plot("gpa", fun=log10, qn=qn, colm="orange", add=TRUE)
+logAxis(2)
+abline(h=log10(quantileMean(PREC,qq)), lty=3)
+cols <- c("blue","orange","green3"); names <- c("Wakeby","GPD","Empirical")
+legend("topright", names, col=addAlpha(cols), lwd=7, bg="white", text.col="white")
+legend("topright", names, col=cols, lwd=2, bty="n")
+log_plot("log_quantileMean", ylab="distLquantile( log(sample) )", 
+         main="logarithmic", ylim=ylim, qn=qn)
+log_plot("log_wak", qn=qn, colm="blue", add=TRUE)
+log_plot("log_gpa", qn=qn, colm="orange", add=TRUE)
+logAxis(2)
+abline(h=quantileMean(log10(PREC),qq), lty=3)
+title(main=qn, outer=TRUE, line=-1.2)
+}
+#
+par(mar=c(3,3,3,0.4))
+hist(pbreplicate(5000,10^quantileMean(log10(sample(PREC,500)),0.9999)), breaks=50, 
+     xlab="mm/h", main="quantile(log10(sample(\nPREC,500)),0.9999))", 
+     col="lightsteelblue", border="NA", xlim=lim0(60), freq=FALSE)
+abline(v=10^quantileMean(log10(PREC),0.9999), lty=3)
+hist(pbreplicate(5000,10^quantileMean(log10(sample(PREC,5000)),0.9999)), breaks=50,
+     xlab="mm/h", main="quantile(log10(sample(\nPREC,5000)),0.9999))", 
+     col="lightsteelblue", border="NA", xlim=lim0(60), freq=FALSE)
+abline(v=10^quantileMean(log10(PREC),0.9999), lty=3)
+rm(cols,names,qq,qn,qi,ylim)
 dev.off()
+
+
 
 
 
@@ -558,13 +582,14 @@ dev.off()
 # 3.1. Raw data visualisation --------------------------------------------------
 
 source("Code_aid.R"); aid$load("meta", "PT")
+library("mapdata") ;  map <- maps::map('worldHires','Germany') ;  dev.off()
+
 
 range(sapply(PT, function(x)   max(x$prec, na.rm=T))) # 21.5 80.8
 range(sapply(PT, function(x) range(x$temp, na.rm=T))) # -16.4  34.6
 range(sapply(PT, function(x) range(x$temp5,na.rm=T))) # -21.3  29.8
 hist(sapply(PT, nrow), breaks=30, col="salmon")
 
-library("mapdata") ;  map <- maps::map('worldHires','Germany') ;  dev.off()
 
 PT5 <- pblapply(1:142, function(i){
   x <- PT[[i]]
