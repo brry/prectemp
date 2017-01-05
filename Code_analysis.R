@@ -246,7 +246,7 @@ source("Code_aid.R"); aid$load("PREC"); library(extremeStat)
 ransample <- function(simn, trunc=0) # random sample generator
   {
   set.seed(simn) # reproducible 'random' numbers
-  out <- lapply(aid$n, function(nn) sample(PREC,nn) )
+  out <- lapply(aid$n, function(nn) sample(log10(PREC),nn) )
   if(trunc>0) out <- lapply(out, function(x) x[x>=quantileMean(x,trunc)])
   out
   }
@@ -279,12 +279,12 @@ qn <- function(simn)
       file=paste0("simlogs/",simn,".txt"), append=TRUE)
   }
 
-# long computing time (2-2.5 minutes per simulation run):
+# long computing time (3 minutes per simulation run):
 # 400 in 2 hours on 7 cores
 library(parallel) # for parallel lapply execution
-cl <- makeCluster( detectCores()-2 )
+cl <- makeCluster( detectCores()-1 )
 clusterExport(cl, c("aid", "PREC", "qn", "ransample"))#, "dweight"))
-dummy <- pblapply(X=1:400, cl=cl, FUN=qn)
+dummy <- pblapply(X=1:14, cl=cl, FUN=qn)
 stopCluster(cl)
 rm(cl, dummy)
 rm(qn, ransample)
@@ -313,16 +313,16 @@ apply(simQ[1:35, "99.9%", as.character(40:45),], 1:2, min, na.rm=TRUE)
 
 
 # too small values:
-which(simQ<0, arr.ind=TRUE) # some laplace
-simQ[which(simQ<0)] # nothing really bad
-which(simQ[,1:4,,]<0.5, arr.ind=TRUE)
+which(10^simQ<0.5, arr.ind=TRUE) # some laplace
+simQ[which(10^simQ<0.5)] # nothing really bad
+which(10^simQ[,1:4,,]<0.5, arr.ind=TRUE)
 
 # too large values
-sort(table(rownames(which(simQ[1:35, , ,]>400, arr.ind=TRUE))))
+sort(table(rownames(which(10^simQ[1:35, , ,]>400, arr.ind=TRUE))))
 
 thres <- c(1:10*100)
 toolarge <- pbsapply(thres, function(l) 
-                     apply(simQ[1:35, , ,], 1, function(x) sum(x>l,na.rm=TRUE)) )
+                     apply(10^simQ[1:35, , ,], 1, function(x) sum(x>l,na.rm=TRUE)) )
 colnames(toolarge) <- thres
 colSums(toolarge) # at 400 sims: 12k values > 700, 19k > 400, 44k > 200 
 plot(thres, colSums(toolarge), type="b", log="y", ylim=c(1,1e5), axes=FALSE)
@@ -330,11 +330,11 @@ logAxis(2); axis(1)
 for(i in 1:35) lines(thres, replace(toolarge, toolarge==0, 1)[i,])
 
 val <- logSpaced(min=50, max=10000, n=30, plot=F)
-numlarger <- pbsapply(val, function(x) sum(simQ[20:35, "99.9%",,]>x, na.rm=T))
+numlarger <- pbsapply(val, function(x) sum(10^simQ[20:35, "99.9%",,]>x, na.rm=T))
 plot(val, numlarger, log="yx", type="o", axes=F, main="Q99.9% GPD estimates larger than val")
 logAxis(1); logAxis(2)
 
-toolarge99 <- which(simQ[1:35,"99%", ,]>500, arr.ind=TRUE)
+toolarge99 <- which(10^simQ[1:35,"99%", ,]>500, arr.ind=TRUE)
 head(toolarge99)
 sort(table(rownames(toolarge99)))
 
@@ -344,15 +344,14 @@ sort(table(rownames(toolarge99)))
 
 source("Code_aid.R"); aid$load("simQ", "PREC")
 # 136k Rainfall hours between 10 and 12 degrees for all stations (PREC)
-Qtrue <- quantileMean(PREC, aid$probs); rm(PREC)
-target <- c(4,dim(simQ)[3:4])
+Qtrue <- quantileMean(log10(PREC), aid$probs)
+target <- dim(simQ)[3:4]
 Qtrue <- array(rep(Qtrue, prod(target)), dim=target) ; rm(target)
 # rebrand implausible estimates as error (otherwise bias becomes Inf)
-simQ[1:35,,,][simQ[1:35,,,]>800] <- NA
-
+simQ[1:35,,,][simQ[1:35,,,]>log10(800)] <- NA
 
 # Bias/Goodness/Error - bias:
-bias <- apply(simQ[1:35,1:4,,], 1, function(x) median(abs(x-Qtrue), na.rm=TRUE))
+bias <- apply(simQ[1:35,"99.9%",,], 1, function(x) median(abs(x-Qtrue), na.rm=TRUE))
 BGE <- data.frame(bias); rm(bias)
 # goodness of fit (actually badness of fit):
 BGE$gof <- apply(simQ[1:35,"RMSE",,], 1, median, na.rm=TRUE)
@@ -371,11 +370,12 @@ weights_all$mean <- NULL
 weights_dn <- weights_all[rownames(weights_all) %in% lmomco::dist.list(),]
 weights_dn <- as.data.frame(apply(weights_dn, 2, function(x) x/sum(x)))
 #
-weights <- 0.07-sort(rowMeans(weights_dn))
+weights <- 0.06-sort(rowMeans(weights_dn))
 weights[weights<0] <- 0
 weights <- weights/sum(weights)
 save(weights, file="dataprods/weights.Rdata")
 
+weights_old <- weights
 
 # add custom weighted quantile estimates:
 library(extremeStat)
@@ -389,10 +389,10 @@ rm(weightedc, simQold)
 
 save(simQ, file="dataprods/simQ.Rdata")
 
-weights_old <- weights
+
 # Now rerun BGE + weights* code to include weightedc in graphics
 stopifnot(all(round(weights,15)==round(weights_old,15))) 
-# weights has not changed, since not depending on weightedc
+# weights has not changed, since not dependant on weightedc
 rm(weights_old)
 
 
@@ -432,19 +432,19 @@ rm(cols, labels)
 dev.off()
 
 
-pdf("fig/biasgoferror_all.pdf", height=5) # 2 min
+pdf("fig/biasgoferror_all2.pdf", height=5) # 2 min
 par(mfrow=c(2,2), mar=c(3.5,3.5,2,1), mgp=c(2,0.7,0), oma=c(0,0,2,0), las=1)
 dummy <- pblapply( c(dn, ""), function(d){
 # bias:
   for(qi in 1:2){
   qn <- c("99%","99.9%")[qi]
-  plot(1, type="n", xlim=c(24,1900), ylim=c(5,c(10,20)[qi]), 
-       log="x", xaxs="i", main=paste("bias", qn), xaxt="n",
+  plot(1, type="n", xlim=c(24,1900), ylim=log10(c(3.5,c(15,50)[qi])), 
+       log="x", xaxs="i", main=paste("bias", qn), xaxt="n", yaxt="n",
        xlab="sample size", ylab="Random sample quantile")
-  logAxis(1)
+  logAxis(1); logAxis(2)
   for(dd in dn) lines(aid$n, simQA["50%",dd,qn,], col=dcol[dd])
   rm(dd)
-  abline(h=quantileMean(PREC, c(0.99,0.999)[qi]), lty=3)
+  abline(h=quantileMean(log10(PREC), c(0.99,0.999)[qi]), lty=3)
   if(d!=""){
   ciBand(yl=simQA["30%",d,qn,], 
          ym=simQA["50%",d,qn,],
@@ -453,15 +453,16 @@ dummy <- pblapply( c(dn, ""), function(d){
   }
   }
 # gof:
-  lh <- logHist(simQ[1:17,"RMSE",,], breaks=60, las=1, col=addAlpha("darkorange"), 
+  breaks <- seq(-4,0, by=0.02)
+  logHist(simQ[1:17,"RMSE",,], breaks=breaks, las=1, col=addAlpha("darkorange"), 
                 ylab="Density", border=NA, xlim=log10(c(0.002, 0.1)), 
                 main="gof", xlab="", yaxt="n")
   title(xlab="Distribution goodness of fit: RMSE(CDF,ECDF)", xpd=TRUE)
-  logHist(simQ[23:35,"RMSE",,], breaks=lh$breaks, col=addAlpha("red"), 
+  logHist(simQ[23:35,"RMSE",,], breaks=breaks, col=addAlpha("red"), 
           logargs=list(xaxt="n"), border=NA, add=TRUE)
   if(d!="") 
   {
-  logHist(simQ[d,"RMSE",,], breaks=lh$breaks, col=1, logargs=list(xaxt="n"), add=TRUE)
+  logHist(simQ[d,"RMSE",,], breaks=breaks, col=1, logargs=list(xaxt="n"), add=TRUE)
   title(main=round(BGE[d,"gof"],4), adj=0) # median
   }
   # title(main=round(mean(simQ[d,"RMSE",,],na.rm=TRUE),4), adj=1) # mean
@@ -482,11 +483,11 @@ if(d=="")
   {
   op <- par(mar=c(2,2,2,1), oma=c(0,0,0,0) )
   for(qi in 1:4){
-  qn <- c("90%","99%","99.9%","99.99%")[qi]
-  plot(1, type="n", xlim=c(24,1900), ylim=c(c(3,4.5,6,6)[qi],c(4.5,9,20,45)[qi]), 
-       log="x", xaxs="i", main=paste("bias", qn), xaxt="n",
+  qn <- names(aid$probcols)[qi]
+  plot(1, type="n", xlim=c(24,1900), ylim=log10(c(c(3,4.5,6,6)[qi],c(9,15,50,50)[qi])), 
+       log="x", xaxs="i", main=paste("bias", qn), xaxt="n", yaxt="n",
        xlab="sample size", ylab="Random sample quantile")
-  logAxis(1)
+  logAxis(1); logAxis(2)
   for(dd in dn) lines(aid$n, simQA["50%",dd,qn,], col=dcol[dd])
   abline(h=quantileMean(PREC, c(0.9,0.99,0.999,0.9999)[qi]), lty=3)
   }
