@@ -10,6 +10,7 @@ browseURL("http://www.nat-hazards-earth-syst-sci-discuss.net/nhess-2016-183")
 # Historically, section 3 came before section 2, but this is organized by content
 
 # Contents ---------------------------------------------------------------------
+# In Rstudio, turn on the outline menu (topright button in script window, CTRL + SHIFT + O)
 
 # 0. Packages
 
@@ -21,9 +22,9 @@ browseURL("http://www.nat-hazards-earth-syst-sci-discuss.net/nhess-2016-183")
 # 1.5. Dew point temperature of previous 5 hours
 
 # 2. Sample size dependency
-# 2.1. SSD all distributions
-# 2.2. Distribution weights
-# 2.3. SSD GPD 
+# 2.1. SSD computation
+# 2.2. SSD checks
+# 2.3. Distribution weights
 # 2.4. Truncation dependency 
 # 2.5. tempdep Wakeby distribution
 # 2.6. Sample size bias lin vs log
@@ -237,6 +238,7 @@ allprecs <- pblapply(seq(-11,23,0.2), binprec, xlim=log10(c(0.5,80)),
                      ylim=lim0(6), col="deepskyblue1", freq=FALSE)
 dev.off()
 
+
 # 2.1. SSD computation ---------------------------------------------------------
 
 source("Code_aid.R"); aid$load("PREC"); library(extremeStat)
@@ -249,8 +251,7 @@ ransample <- function(simn, trunc=0) # random sample generator
   out
   }
   
-# custom weights come from section 2.3, determined from 400 runs (*_firstrun folders)
-# truncation of 80% comes from section 2.4.
+# truncation of 80% decided in section 2.4.
 qn <- function(simn)
   {
   cat("\n------- sim run ", simn, " started ", as.character(Sys.time()), " -------\n", 
@@ -262,8 +263,7 @@ qn <- function(simn)
   if(file.exists(fname)) return()
   # Quantile estimation function:
   Qest <- function(x) 
-    extremeStat::distLquantile(x, probs=aid$probs, truncate=0.8, 
-    quiet=TRUE, order=FALSE, weightc=NA)#dweight)
+    extremeStat::distLquantile(x, probs=aid$probs, truncate=0.8, quiet=TRUE, order=FALSE)
   # random samples
   rs <- ransample(simn)
   # Hardcore computation returning a 3D array:
@@ -291,9 +291,10 @@ rm(qn, ransample)
 
 
 
-# 2.2. SSD aggregation -------------------------------------------------------
+# 2.2. SSD checks --------------------------------------------------------------
 
-# Read in simulation results (1.4 GB for 2000 simulations!)
+# Read in simulation results + convert to array
+# (1.4 GB for 2000 simulations!)
 simEnv <- new.env()
 dummy <- pblapply(dir("sim", full=TRUE), load, envir=simEnv) # 6 secs / 1 min for 500 sims
 simQ <- as.list(mget(gtools::mixedsort(ls(envir=simEnv)), envir=simEnv))
@@ -301,51 +302,41 @@ simQ <- l2array(simQ) # this takes a minute, 400MB for 745 sims
 save(simQ, file="dataprods/simQ.Rdata")
 rm(simEnv, dummy)
 
-# aggregate (2 minutes for 500 runs):
 load("dataprods/simQ.Rdata")
-simQA <- pbapply(simQ, MARGIN=1:3, quantileMean, 
-                 probs=c(seq(0,1,0.1),0.25,0.75), na.rm=TRUE) 
-                #probs=c(0.3,0.5,0.7), na.rm=TRUE)
-save(simQA, file="dataprods/simQA.Rdata")
-load("dataprods/simQA.Rdata")
-
 
 # checks:
 str(simQ)
-sort(table(rownames(which(simQ[1:35, , ,]>400, arr.ind=TRUE))))
+dim(simQ)
+lapply(dimnames(simQ), head, 50)
 
-large <- c(1:10*100)
-toolarge <- pbsapply(large, function(l) 
-                     apply(simQ[1:35, , ,], 1, function(x) sum(x>l,na.rm=TRUE)) )
-colnames(toolarge) <- large
-plot(large, colSums(toolarge), type="b", log="y", ylim=c(1,1e5), axes=FALSE)
-logAxis(2); axis(1)
-for(i in 1:35) lines(large, toolarge[i,])
+apply(simQ[1:35, "99.9%", as.character(40:45),], 1:2, min, na.rm=TRUE)
 
 
-dim(simQA)
-str(simQA)
-dimnames(simQA)
-simQA["0%", ,"99.9%", as.character(40:45)]
-
+# too small values:
 which(simQ<0, arr.ind=TRUE) # some laplace
 simQ[which(simQ<0)] # nothing really bad
 which(simQ[,1:4,,]<0.5, arr.ind=TRUE)
-which(simQ["kap", "99.9%", ,]>200, arr.ind=TRUE) # 2
-str(which(simQ[1:35, , ,]>900, arr.ind=TRUE)) # 12k (45k>200) at 400 sims
-toolarge <- which(simQ[1:35,"99%", ,]>500, arr.ind=TRUE)
-head(toolarge)
-table(rownames(toolarge))
 
-kap <- as.vector(simQ["kap","99.9%",,])
-val <- logSpaced(min=120, max=250, n=100, plot=F)
-numlarger <- sapply(val, function(x) sum(kap>x, na.rm=T))
-plot(val, numlarger, log="y", type="o", las=1)
+# too large values
+sort(table(rownames(which(simQ[1:35, , ,]>400, arr.ind=TRUE))))
+
+thres <- c(1:10*100)
+toolarge <- pbsapply(thres, function(l) 
+                     apply(simQ[1:35, , ,], 1, function(x) sum(x>l,na.rm=TRUE)) )
+colnames(toolarge) <- thres
+colSums(toolarge) # at 400 sims: 12k values > 700, 19k > 400, 44k > 200 
+plot(thres, colSums(toolarge), type="b", log="y", ylim=c(1,1e5), axes=FALSE)
+logAxis(2); axis(1)
+for(i in 1:35) lines(thres, replace(toolarge, toolarge==0, 1)[i,])
 
 val <- logSpaced(min=50, max=10000, n=30, plot=F)
 numlarger <- pbsapply(val, function(x) sum(simQ[20:35, "99.9%",,]>x, na.rm=T))
 plot(val, numlarger, log="yx", type="o", axes=F, main="Q99.9% GPD estimates larger than val")
 logAxis(1); logAxis(2)
+
+toolarge99 <- which(simQ[1:35,"99%", ,]>500, arr.ind=TRUE)
+head(toolarge99)
+sort(table(rownames(toolarge99)))
 
 
 

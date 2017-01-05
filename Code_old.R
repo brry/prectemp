@@ -4,6 +4,15 @@
 
 
 
+which(simQ["kap", "99.9%", ,]>200, arr.ind=TRUE) # 2
+kap <- as.vector(simQ["kap","99.9%",,])
+val <- logSpaced(min=120, max=250, n=100, plot=F)
+numlarger <- sapply(val, function(x) sum(kap>x, na.rm=T))
+plot(val, numlarger, log="y", type="o", las=1)
+
+
+
+
 # bias:
 d_bias <- sapply(dimnames(simQA)[[2]][1:35], function(d) 
   rmse(simQA["50%",d,"99.9%",], rep(quantileMean(PREC, 0.999),512)))
