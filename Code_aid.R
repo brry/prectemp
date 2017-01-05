@@ -124,6 +124,6 @@ onlymap=FALSE,
   } # end station plot
 ,
 # load --------------------------------------------------------------
-load = function(...) dummy <- pbapply::pbsapply(list(...), function(x) 
+load = function(...) dummy <- lapply(list(...), function(x) 
   load(paste0("dataprods/",x,".Rdata"), envir=globalenv() ))
 )

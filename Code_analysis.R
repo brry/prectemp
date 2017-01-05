@@ -387,6 +387,8 @@ simQ["weightedc",,,] <- weightedc
 stopifnot(all(simQold[-22,,,]==simQ[-22,,,], na.rm=TRUE))
 rm(weightedc, simQold)
 
+save(simQ, file="dataprods/simQ.Rdata")
+
 weights_old <- weights
 # Now rerun BGE + weights* code to include weightedc in graphics
 stopifnot(all(round(weights,15)==round(weights_old,15))) 
@@ -394,8 +396,20 @@ stopifnot(all(round(weights,15)==round(weights_old,15)))
 rm(weights_old)
 
 
-         
-# _ Visualization: -------
+# SSD simulation aggregation:
+simQA <- pbapply(simQ, MARGIN=1:3, quantileMean, probs=c(0.3,0.5,0.7), na.rm=TRUE) # 2 min
+save(simQA, file="dataprods/simQA.Rdata")
+
+
+
+# _ weights visualization: -------
+source("Code_aid.R"); aid$load("PREC")
+dn <- rownames(weights_all)
+dcol <- rep("grey80", length(dn)) ; names(dcol) <- dn
+dcol[grepl("GPD_", dn)] <- addAlpha("red")
+simNA <- apply(simQ[,1:4,,], 1:3, function(x) mean(is.na(x)))
+
+
 pdf("fig/biasgoferror_weights.pdf")
 cols <- RColorBrewer::brewer.pal(3, "Set2")
 par(mar=c(2,11,3,1), mgp=c(3,0.2,0))
@@ -418,14 +432,6 @@ rm(cols, labels)
 dev.off()
 
 
-aid$load("PREC")
-dn <- rownames(weights_all)
-dcol <- rep("grey80", length(dn)) ; names(dcol) <- dn
-dcol[grepl("GPD_", dn)] <- addAlpha("red")
-simNA <- apply(simQ[,1:4,,], 1:3, function(x) mean(is.na(x)))
-simQQ <- pbapply(simQ, MARGIN=1:3, quantileMean, probs=c(0.3,0.5,0.7), na.rm=TRUE) # 2 min
-
-
 pdf("fig/biasgoferror_all.pdf", height=5) # 2 min
 par(mfrow=c(2,2), mar=c(3.5,3.5,2,1), mgp=c(2,0.7,0), oma=c(0,0,2,0), las=1)
 dummy <- pblapply( c(dn, ""), function(d){
@@ -436,13 +442,13 @@ dummy <- pblapply( c(dn, ""), function(d){
        log="x", xaxs="i", main=paste("bias", qn), xaxt="n",
        xlab="sample size", ylab="Random sample quantile")
   logAxis(1)
-  for(dd in dn) lines(aid$n, simQQ["50%",dd,qn,], col=dcol[dd])
+  for(dd in dn) lines(aid$n, simQA["50%",dd,qn,], col=dcol[dd])
   rm(dd)
   abline(h=quantileMean(PREC, c(0.99,0.999)[qi]), lty=3)
   if(d!=""){
-  ciBand(yl=simQQ["30%",d,qn,], 
-         ym=simQQ["50%",d,qn,],
-         yu=simQQ["70%",d,qn,], x=aid$n, colm="blue", add=TRUE)
+  ciBand(yl=simQA["30%",d,qn,], 
+         ym=simQA["50%",d,qn,],
+         yu=simQA["70%",d,qn,], x=aid$n, colm="blue", add=TRUE)
   if(qi==1) title(main=round(BGE[d,"bias"],2), adj=0)
   }
   }
@@ -481,7 +487,7 @@ if(d=="")
        log="x", xaxs="i", main=paste("bias", qn), xaxt="n",
        xlab="sample size", ylab="Random sample quantile")
   logAxis(1)
-  for(dd in dn) lines(aid$n, simQQ["50%",dd,qn,], col=dcol[dd])
+  for(dd in dn) lines(aid$n, simQA["50%",dd,qn,], col=dcol[dd])
   abline(h=quantileMean(PREC, c(0.9,0.99,0.999,0.9999)[qi]), lty=3)
   }
   par(op)
@@ -492,8 +498,62 @@ dev.off()
 rm(dn, dcol, simNA, dummy)
 
 
-# ToDo: paper Fig 5 + 6_potsdamQn
-# ToDo: recreate paper Fig 6 SSD GPD 
+# _ SSD visualistation -----
+source("Code_aid.R"); aid$load("simQA", "PREC")
+
+pdf("fig/fig5.pdf", height=3, width=3.5, pointsize=10)
+par(mar=c(3,3,0.2,0.2), mgp=c(1.8,0.7,0), las=1, lend=1)
+plot(1, type="n", xlim=c(25,1300), ylim=c(5,20), log="x", xaxs="i", main="", xaxt="n",
+       xlab="sample size n (logarithmic axis)", ylab="")
+logAxis(1)
+for(d in c("quantileMean","weightedc"))
+  ciBand(yl=simQA["30%",d,"99.9%",], 
+         ym=simQA["50%",d,"99.9%",],
+         yu=simQA["70%",d,"99.9%",], x=aid$n, colm=if(d=="weightedc") "blue" else "green3", add=TRUE)
+abline(h=quantileMean(PREC, probs=0.999), lty=3)
+legend("bottomright", c("Weighted distribution average",
+       "Empirical quantile", "Central 40% of simulations", "Quantile of full sample"),
+       lwd=c(2,2,11,1), lty=c(1,1,1,3), col=c("blue","green3",8,1), bg="white", cex=0.8)
+text(50, c(8, 15), c("empirical","parametric") )
+title(ylab="Random sample 99.9% quantile  [mm/h]       ")
+dev.off()
+
+
+
+dn4 <- dimnames(simQA)[[2]][23:26]
+dn7 <- dimnames(simQA)[[2]][27:33]
+col4 <- RColorBrewer::brewer.pal(4, "Set2") ; names(col4) <- dn4
+col7 <- RColorBrewer::brewer.pal(7, "Set2") ; names(col7) <- dn7
+
+
+pdf("fig/fig6.pdf", height=3, width=3.5, pointsize=10)
+#for(smooth in c(1,3,5,7,9,11,13,15)){
+smooth <- 3
+par(mfrow=c(1,2), mar=c(2,0,0.2,0.4), oma=c(1,3,0,0), mgp=c(1.8,0.7,0), las=1)
+## panel 1
+plot(1, type="n", xlim=c(25,1300), ylim=c(7,20), log="x", xaxs="i", main="", xaxt="n",
+       xlab="", ylab="")
+logAxis(1)
+for(d in dn7) lines(aid$n, movAv(simQA["50%",d,"99.9%",], smooth), col=col7[d])
+abline(h=quantileMean(PREC, probs=0.999), lty=3)
+text(50, 19, "MLE")
+legend("bottomright", dn7, lwd=2, col=col7, bg="white", cex=0.5)
+## panel 2
+#par(mar=c(3,0,0.2,0.4))
+plot(1, type="n", xlim=c(25,1300), ylim=c(7,20), log="x", xaxs="i", main="", xaxt="n",
+       xlab="", ylab="", yaxt="n")
+logAxis(1)
+for(d in dn4) lines(aid$n, movAv(simQA["50%",d,"99.9%",], smooth), col=col4[d])
+abline(h=quantileMean(PREC, probs=0.999), lty=3)
+text(70, 19, "LM / PWM")
+legend("bottomright", dn4, lwd=2, col=col4, bg="white", cex=0.5)
+#
+title(xlab="sample size n (logarithmic axis)", outer=TRUE, mgp=c(-0.2,-1,0), xpd=NA)
+title(ylab="Random sample 99.9% quantile  [mm/h]", outer=TRUE, mgp=c(1.8,1,0), xpd=NA)
+# } # end for loop smooth
+dev.off()
+
+rm(dn4,dn7,col4,col7)
 
 
 # 2.4. Truncation dependency ---------------------------------------------------
@@ -620,26 +680,27 @@ dev.off()
 
 # toDo: recreate paper Fig 2 (PT emp) or use fig/PTQstats p104 with different ylim
 
+
+
 rm(dummy, map)
 
 
 # 3.2. PT-quantiles computation ------------------------------------------------
 
-source("Code_aid.R"); aid$load("PT", "cweights")
-
+source("Code_aid.R"); aid$load("PT", "weights")
 
 # long computing time (1 minute per station)
 library(parallel) # for parallel lapply execution
 cl <- makeCluster( detectCores()-0 )
-clusterExport(cl, c("PT","aid", "cweights"))
+clusterExport(cl, c("PT","aid", "weights"))
 PTQ <- pblapply(X=1:142, cl=cl, FUN=function(i)
   {
   x <- PT[[i]]   #  x <- PT[[3]]; t=19.5
   # Quantile estimates per temperature bin
   binQ <- lapply(aid$mid, function(t) {
     seldat <- x$prec[ x$temp5>(t-1) & x$temp5<=(t+1)]
-    extremeStat::distLquantile(seldat[!is.na(seldat)], probs=aid$probs, truncate=0.8, addinfo=TRUE,
-                  weightc=NA, order=FALSE, ssquiet=TRUE, time=FALSE, progbars=FALSE)
+    extremeStat::distLquantile(seldat, probs=aid$probs, truncate=0.8, weightc=NA, 
+                  order=FALSE, ssquiet=TRUE, time=FALSE, progbars=FALSE)
     })
   # Transform into array for faster subsetting:
   binQ2 <- array(unlist(binQ), dim=c(38, 4, 203),  # c(nrow(binQ[[1]]), ncol(binQ[[1]]), length(binQ))
