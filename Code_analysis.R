@@ -178,8 +178,8 @@ pushHexport(p$plot.vp) ; grid::grid.abline(0,1) ; rm(p)
 # german wikipedia formula:
 x$dewtemp2 <- aid$dewtemp2(x$LUFTTEMPERATUR, x$REL_FEUCHTE) 
 hist(x$dewtemp-x$dewtemp2, breaks=40, col="purple") 
-plot(x$LUFTTEMPERATUR, x$NIEDERSCHLAGSHOEHE, log="y", pch=16, col=addAlpha(1)) 
-plot(x$dewtemp,        x$NIEDERSCHLAGSHOEHE, log="y", pch=16, col=addAlpha(1)) 
+plot(x$LUFTTEMPERATUR, x$NIEDERSCHLAGSHOEHE, log="y", pch=16, xlim=c(-20,30), col=addAlpha(1)) 
+plot(x$dewtemp,        x$NIEDERSCHLAGSHOEHE, log="y", pch=16, xlim=c(-20,30), col=addAlpha(1)) 
 rm(x)
 dev.off()
 
