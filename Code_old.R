@@ -3,6 +3,15 @@
 # Berry Boessenkool, 2016
 
 
+# add custom weighted quantile estimates:
+library(extremeStat)
+old <- simQ[,,100,1]
+new <- q_weighted(old, weightc=weights)
+stopifnot(all(old==new, na.rm=TRUE))
+
+
+
+
 
 which(simQ["kap", "99.9%", ,]>200, arr.ind=TRUE) # 2
 kap <- as.vector(simQ["kap","99.9%",,])

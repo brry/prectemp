@@ -42,7 +42,7 @@ packinst <- function(n) if(!requireNamespace(n, quietly=TRUE)) install.packages(
 sapply(c("berryFunctions", "extremeStat", "pblapply", "maps", "gplots", "gtools",
          "mapdata", "OSMscale", "RCurl"), packinst) 
 berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.13.10(2017-01-03)
-berryFunctions::instGit("brry/extremeStat")   # must be version >= 1.2.12 (2017-01-04)
+berryFunctions::instGit("brry/extremeStat")   # must be version >= 1.2.14 (2017-01-05)
 berryFunctions::instGit("brry/rdwd")  # not yet on CRAN must be >= 0.5.4  (2016-11-25)
 berryFunctions::instGit("brry/OSMscale")      # must be version >= 0.3.12 (2016-11-24)
 }
@@ -347,68 +347,88 @@ source("Code_aid.R"); aid$load("simQ", "PREC")
 Qtrue <- quantileMean(PREC, aid$probs); rm(PREC)
 target <- c(4,dim(simQ)[3:4])
 Qtrue <- array(rep(Qtrue, prod(target)), dim=target) ; rm(target)
-
 # rebrand implausible estimates as error (otherwise bias becomes Inf)
 simQ[1:35,,,][simQ[1:35,,,]>800] <- NA
 
-# bias:
+
+# Bias/Goodness/Error - bias:
 bias <- apply(simQ[1:35,1:4,,], 1, function(x) median(abs(x-Qtrue), na.rm=TRUE))
-d_weights <- data.frame(bias)
-rm(Qtrue, bias)
-
-# goodness of fit:
-d_weights$gof <- apply(simQ[1:35,"RMSE",,], 1, median, na.rm=TRUE)
-
+BGE <- data.frame(bias); rm(bias)
+# goodness of fit (actually badness of fit):
+BGE$gof <- apply(simQ[1:35,"RMSE",,], 1, median, na.rm=TRUE)
 # error rate:
-d_weights$error <- apply(simQ[1:35,1:4,,], 1, function(x) mean(is.na(x))) #proportion
+BGE$error <- apply(simQ[1:35,1:4,,], 1, function(x) mean(is.na(x))) #proportion
 
-d_weights2 <- d_weights[rownames(d_weights) !="weightedc",]
-d_weights2 <- d_weights2[rownames(d_weights2) !="GPD_BAY_extRemes",]
-d_weights2 <- as.data.frame(apply(d_weights2, 2, function(x) x/sum(x,na.rm=TRUE)))
-d_weights2$mean <- rowMeans(d_weights2, na.rm=TRUE)
-d_weights2 <- sortDF(d_weights2, "mean", decreasing=FALSE)
-d_weights2$mean <- NULL
 
-d_weights_dn <- d_weights2[rownames(d_weights2) %in% lmomco::dist.list(),]
-d_weights_dn <- as.data.frame(apply(d_weights_dn, 2, function(x) x/sum(x)))
-
-weights <- 0.07-rowMeans(d_weights_dn)
+weights_all <- BGE[rownames(BGE) !="GPD_BAY_extRemes",]
+if(is.na(weights_all["weightedc","bias"])) 
+  weights_all <- weights_all[rownames(weights_all) !="weightedc",]
+weights_all <- as.data.frame(apply(weights_all, 2, function(x) x/sum(x,na.rm=TRUE)))
+weights_all$mean <- rowMeans(weights_all, na.rm=TRUE)
+weights_all <- sortDF(weights_all, "mean", decreasing=FALSE)
+weights_all$mean <- NULL
+#
+weights_dn <- weights_all[rownames(weights_all) %in% lmomco::dist.list(),]
+weights_dn <- as.data.frame(apply(weights_dn, 2, function(x) x/sum(x)))
+#
+weights <- 0.07-sort(rowMeans(weights_dn))
 weights[weights<0] <- 0
 weights <- weights/sum(weights)
-#save(weights, file="dataprods/weights.Rdata")
+save(weights, file="dataprods/weights.Rdata")
+
+
+# add custom weighted quantile estimates:
+library(extremeStat)
+simQold <- simQ # backup # takes about 7 minutes
+weightedc <- pbapply(simQ[,,,], 3:4, function(x) q_weighted(x, weightc=weights)["weightedc",])
+simQ["weightedc",,,] <- weightedc
+#save(weightedc, file="dataprods/weightedc.Rdata")
+#  load("dataprods/weightedc.Rdata")
+stopifnot(all(simQold[-22,,,]==simQ[-22,,,], na.rm=TRUE))
+rm(weightedc, simQold)
+
+weights_old <- weights
+# Now rerun BGE + weights* code to include weightedc in graphics
+stopifnot(all(round(weights,15)==round(weights_old,15))) 
+# weights has not changed, since not depending on weightedc
+rm(weights_old)
+
 
          
 # _ Visualization: -------
-pdf("fig/d_weights.pdf")
+pdf("fig/BGE.pdf")
 cols <- RColorBrewer::brewer.pal(3, "Set2")
 par(mar=c(2,11,3,1), mgp=c(3,0.2,0))
-barplot(t(replace(d_weights2, is.na(d_weights2), 0)[,1:3]), horiz=T, las=1, col=cols, xaxt="n")
+barplot(t(replace(weights_all, is.na(weights_all), 0)[,1:3]), horiz=T, las=1, 
+        col=cols, xaxt="n", border=NA)
 labels <- c("Bias", "Badness of Fit", "Error rate")
-legend("top", labels, fill=cols, horiz=TRUE, 
-       bty="n", text.width=strwidth(labels)+strwidth("mmm")*c(1.2,1,1), inset=-0.05, xpd=TRUE)
-rm(labels)
+legend("top", labels, fill=cols, horiz=TRUE, bty="n", inset=-0.05, border=NA,
+       text.width=strwidth(labels)+strwidth("mm")*c(1.2,1,0.9), xpd=TRUE)
 axis(1, mgp=c(3,0.8,0))
+#
 par(mfrow=c(1,2), mar=c(2,4,3,1), mgp=c(3,0.2,0))
-barplot(t(d_weights_dn[,1:3]), horiz=T, las=1, col=cols, xaxt="n")
+barplot(t(weights_dn[,1:3]), horiz=T, las=1, col=cols, xaxt="n", border=NA)
 labels <- c("Bias", "Badness of Fit", "Error rate")
-legend("top", labels, fill=cols, horiz=TRUE, 
-       bty="n", text.width=strwidth(labels)+strwidth("mm")*c(1.2,1,0.9), inset=-0.05, xpd=TRUE)
-rm(labels)
+legend("top", labels, fill=cols, horiz=TRUE, bty="n", inset=-0.05, border=NA,
+       text.width=strwidth(labels)+strwidth("mm")*c(1.2,1,0.9), xpd=TRUE)
 axis(1, mgp=c(3,0.8,0))
 barplot(weights, horiz=TRUE, las=1, main="Weights", xaxt="n")
 axis(1, mgp=c(3,0.8,0)) # , at=seq(0,0.06, 0.02)
-rm(cols)
+rm(cols, labels)
 dev.off()
 
-aid$load("simQA", "PREC")
-dn <- rownames(d_weights2)
+
+aid$load("PREC")
+dn <- rownames(weights_all)
 dcol <- rep("grey80", length(dn)) ; names(dcol) <- dn
 dcol[grepl("GPD_", dn)] <- addAlpha("red")
 simNA <- apply(simQ[,1:4,,], 1:3, function(x) mean(is.na(x)))
+simQQ <- pbapply(simQ, MARGIN=1:3, quantileMean, probs=c(0.3,0.5,0.7), na.rm=TRUE) # 2 min
 
-pdf("fig/d_biasgoferror.pdf", height=5)
+
+pdf("fig/d_biasgoferror.pdf", height=5) # 2 min
 par(mfrow=c(2,2), mar=c(3.5,3.5,2,1), mgp=c(2,0.7,0), oma=c(0,0,2,0), las=1)
-dummy <- pblapply( c(dn, "", names(weights)), function(d){
+dummy <- pblapply( c(dn, ""), function(d){
 # bias:
   for(qi in 1:2){
   qn <- c("99%","99.9%")[qi]
@@ -416,14 +436,14 @@ dummy <- pblapply( c(dn, "", names(weights)), function(d){
        log="x", xaxs="i", main=paste("bias", qn), xaxt="n",
        xlab="sample size", ylab="Random sample quantile")
   logAxis(1)
-  for(dd in dn) lines(aid$n, simQA["50%",dd,qn,], col=dcol[dd])
+  for(dd in dn) lines(aid$n, simQQ["50%",dd,qn,], col=dcol[dd])
   rm(dd)
   abline(h=quantileMean(PREC, c(0.99,0.999)[qi]), lty=3)
   if(d!=""){
-  ciBand(yl=simQA["30%",d,qn,], 
-         ym=simQA["50%",d,qn,],
-         yu=simQA["70%",d,qn,], x=aid$n, colm="blue", add=TRUE)
-  if(qi==1) title(main=round(d_weights[d,"bias"],2), adj=0)
+  ciBand(yl=simQQ["30%",d,qn,], 
+         ym=simQQ["50%",d,qn,],
+         yu=simQQ["70%",d,qn,], x=aid$n, colm="blue", add=TRUE)
+  if(qi==1) title(main=round(BGE[d,"bias"],2), adj=0)
   }
   }
 # gof:
@@ -436,7 +456,7 @@ dummy <- pblapply( c(dn, "", names(weights)), function(d){
   if(d!="") 
   {
   logHist(simQ[d,"RMSE",,], breaks=lh$breaks, col=1, logargs=list(xaxt="n"), add=TRUE)
-  title(main=round(d_weights[d,"gof"],4), adj=0) # median
+  title(main=round(BGE[d,"gof"],4), adj=0) # median
   }
   # title(main=round(mean(simQ[d,"RMSE",,],na.rm=TRUE),4), adj=1) # mean
 # error:
@@ -452,6 +472,20 @@ dummy <- pblapply( c(dn, "", names(weights)), function(d){
   }
 #
 title(main=d, outer=TRUE)
+if(d=="")
+  {
+  op <- par(mar=c(2,2,2,1), oma=c(0,0,0,0) )
+  for(qi in 1:4){
+  qn <- c("90%","99%","99.9%","99.99%")[qi]
+  plot(1, type="n", xlim=c(24,1900), ylim=c(c(3,4.5,6,6)[qi],c(4.5,9,20,45)[qi]), 
+       log="x", xaxs="i", main=paste("bias", qn), xaxt="n",
+       xlab="sample size", ylab="Random sample quantile")
+  logAxis(1)
+  for(dd in dn) lines(aid$n, simQQ["50%",dd,qn,], col=dcol[dd])
+  abline(h=quantileMean(PREC, c(0.9,0.99,0.999,0.9999)[qi]), lty=3)
+  }
+  par(op)
+  }
 })
 dev.off()
 
