@@ -396,7 +396,7 @@ rm(weights_old)
 
          
 # _ Visualization: -------
-pdf("fig/BGE.pdf")
+pdf("fig/biasgoferror_weights.pdf")
 cols <- RColorBrewer::brewer.pal(3, "Set2")
 par(mar=c(2,11,3,1), mgp=c(3,0.2,0))
 barplot(t(replace(weights_all, is.na(weights_all), 0)[,1:3]), horiz=T, las=1, 
@@ -426,7 +426,7 @@ simNA <- apply(simQ[,1:4,,], 1:3, function(x) mean(is.na(x)))
 simQQ <- pbapply(simQ, MARGIN=1:3, quantileMean, probs=c(0.3,0.5,0.7), na.rm=TRUE) # 2 min
 
 
-pdf("fig/d_biasgoferror.pdf", height=5) # 2 min
+pdf("fig/biasgoferror_all.pdf", height=5) # 2 min
 par(mfrow=c(2,2), mar=c(3.5,3.5,2,1), mgp=c(2,0.7,0), oma=c(0,0,2,0), las=1)
 dummy <- pblapply( c(dn, ""), function(d){
 # bias:
