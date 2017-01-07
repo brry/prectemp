@@ -41,7 +41,7 @@ if(FALSE){ # You need to download and install the packages only once
 packinst <- function(n) if(!requireNamespace(n, quietly=TRUE)) install.packages(n)
 sapply(c("berryFunctions", "extremeStat", "pblapply", "maps", "gplots", "gtools",
          "mapdata", "OSMscale", "RCurl"), packinst) 
-berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.13.14(2017-01-06)
+berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.13.15(2017-01-07)
 berryFunctions::instGit("brry/extremeStat")   # must be version >= 1.2.16 (2017-01-07)
 berryFunctions::instGit("brry/rdwd")  # not yet on CRAN must be >= 0.5.4  (2016-11-25)
 berryFunctions::instGit("brry/OSMscale")      # must be version >= 0.3.12 (2016-11-24)
@@ -576,12 +576,130 @@ dev.off()
 rm(dn5,dn6,col5,col6, smooth, dens)
 
 
+
 # 2.4. Truncation dependency ---------------------------------------------------
-# ToDo: recreate paper Fig 3 + 4 (new)
+source("Code_aid.R"); aid$load("PREC", "weights"); rm(BGE,weights_all,weights_dn)
+
+trunc <- seq(0,0.95, len=50)
+library(parallel) ; library(extremeStat)
+cl <- makeCluster( detectCores()-1 )
+clusterExport(cl, c("aid", "PREC", "weights", "trunc")) # 20 min on 3 cores
+trqL <- pblapply(trunc, cl=cl, FUN=function(tr) 
+  berryFunctions::tryStack(
+  extremeStat::distLquantile(log10(PREC), truncate=tr, quiet=TRUE, order=FALSE, 
+                             probs=aid$probs, emp=FALSE, weighted=TRUE, weightc=weights),
+  file=paste0("simlogs/trunc",formatC(round(tr,4),format="f", digits=4),".txt") ))
+stopCluster(cl) ; rm(cl)
+trq <- l2array(trqL)
+names(dimnames(trq)) <- c("distr","prob","trunc")
+dimnames(trq)[[3]] <- formatC(round(trunc,4),format="f", digits=4)
+save(trunc,trq, file="dataprods/trunc.Rdata") 
+rm(trqL)
+
+
+# GPD et al:
+aid$load("PT")
+trunc_stats <- c(0, 0.2, 0.4, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.98) 
+cl <- makeCluster( detectCores()-1 )
+clusterExport(cl, c("aid", "PT", "weights", "trunc_stats")) # 30 min on 3 cores
+trqL_stats <- pblapply(seq_along(PT), cl=cl, FUN=function(stat)
+  berryFunctions::tryStack(
+  {
+  tqL <- lapply(trunc_stats, FUN=function(tr) extremeStat::distLquantile(log10(PT[[stat]]$prec), 
+                 truncate=tr, quiet=TRUE, order=FALSE, probs=aid$probs, weightc=weights))
+  tq <- berryFunctions::l2array(tqL)
+  names(dimnames(tq)) <- c("distr","prob","trunc")
+  dimnames(tq)[[3]] <- trunc_stats
+  tq
+  }, 
+  file=paste0("simlogs/truncstat",stat,".txt") ))
+stopCluster(cl) ; rm(cl)
+trq_stats <- l2array(trqL_stats)
+names(dimnames(trq_stats))[4] <- "stat"
+dimnames(trq_stats)[[4]] <- names(PT)
+save(trunc_stats,trq_stats, file="dataprods/trunc_stats.Rdata") 
+rm(trqL_stats)
+
+
+# _ Visualisation -----
+
+source("Code_aid.R"); aid$load("PREC","trunc")
+
+pdf("fig/fig3.pdf", height=3.5, width=3.5, pointsize=11)
+par(mar=c(3,2.8,0.2,0.4), mgp=c(1.8,0.5,0))
+plot(1, type="n", xlab="Truncation proportion", xlim=0:1, xaxs="i", xaxt="n",
+     ylab="99.9% quantile estimate  [mm/h]", ylim=c(0.8, 1.9), yaxt="n")
+logAxis(2)
+axis(1, 0:5*0.2, c("0",1:4*0.2,"1"))
+dn <- c("weightedc","wei","gpa")
+dnlegend <- c("weighted","Weibull","GPD")
+cols <- RColorBrewer::brewer.pal(5, "Set1")[-(1:2)]; names(cols) <- dn
+for(d in dimnames(trq)[[1]]) lines(trunc, trq[d,"99.9%",], col=8)
+for(d in dn) lines(trunc, trq[d,"99.9%",], col=cols[d], lwd=2)
+abline(v=0.8)
+abline(h=quantileMean(log10(PREC), probs=0.999), lty=3)
+legend("topright", c(dnlegend, "other"),
+       col=c(cols,8), lty=1, lwd=c(rep(2,6),1), bg="white", cex=0.8)
+text(0.01, log10(15), "empirical quantile (full sample)", cex=0.8, adj=0)
+dev.off()
+rm(d,dn,dnlegend,cols)
+
+
+# GPD per station:
+source("Code_aid.R"); aid$load("trunc_stats", "weights"); rm(BGE,weights_all,weights_dn)
+
+dn <- c(names(weights)[1:12], dimnames(trq_stats)[[1]][c(22:34)])
+dnlegend <- dn; names(dnlegend) <- dn
+dnlegend <- sub("_","-", dnlegend)
+dnlegend <- sub("_","\n",dnlegend)
+dnlegend <- sub("-","_", dnlegend)
+
+pdf("fig/fig4.pdf", height=5, pointsize=11)
+par(mfrow=c(5,5), oma=c(2,2.9,0.2,0.4), mar=c(0,0,0,0), xpd=F, mgp=c(1.8,0.5,0), cex=1)
+for(d in dn)
+{
+plot(1, type="n", xlab="", ylim=c(0.8, 1.9), yaxt="n", ylab="", 
+     xlim=0:1, xaxs="i", xaxt="n")
+if(d %in% dn[c( 1,21)]) logAxis(2) else logAxis(2, labels=FALSE)
+if(d %in% dn[c(21,25)]) axis(1, 0:5*0.2, c("0",1:4*0.2,"1"))
+abline(v=0.8, col=8)
+for(i in 1:142) lines(trunc_stats, trq_stats[d,"99.9%",,i], col=addAlpha("blue"))
+textField(0.5, log10(60), dnlegend[d], cex=0.6)
+}
+title(xlab="Truncation proportion", outer=TRUE, line=0.7, cex=1)
+title(ylab="Quantile estimate  [mm/h]", outer=TRUE, line=1.5, cex=1)
+dev.off()
+
+rm(dn,d, dnlegend, i)
+
 
 
 # 2.5. tempdep Wakeby distribution ---------------------------------------------
-# ToDo: recreate paper Fig 7
+
+
+pdf("fig/fig7.pdf", height=4, pointsize=11)             # recreate?
+layout(matrix(c(1:5, rep(6,5)), ncol=2), width=c(4,6))
+par(mar=c(0,3.5,0,0.3), oma=c(3.5,0,0.1,0), mgp=c(2.1, 0.8,0), las=1, lend=1, cex=1)
+for(i in 1:5)
+{
+  plot(midw[1:195], parT[i,(49:255)[1:195]], type="l", xaxt="n", yaxt="n", ylab="")
+  axis(2, pretty2(extendrange(par("usr")[3:4], f=-0.1), n=3)  )
+  legend("topleft", parN[i], inset=c(-0.10, -0.13), bty="n")
+  lines(c(3,16,30), sapply(c(3,16,30), function(t) linpar(t)$para[i]), col=2)
+}
+axis(1)
+#title(main="Wakeby (parameter) values depending on temperature bin", outer=TRUE)
+title(xlab="Temperature bin midpoint  [\U{00B0}C]", outer=TRUE)
+##
+# par(mar=c(3,3,0.2,0.4), mgp=c(1.8,0.7,0), lend=1)
+plotwn(dist="quantileMean", qw=0.2, label=F )
+       #main="Sample size dependency of quantile estimations")
+plotwn(dist="weightedc", add=T, qw=0.2, colm="blue", label=F)
+legend("topleft", c("CC-scaling", "Weighted average of 12 distribution functions",
+       "Empirical quantile", "Central 40% of 2000 simulations"),
+       lwd=c(1,2,2,11), lty=1, col=c(1,"blue","green3",8), bg="white", cex=0.8)
+text(20, c(1.25, 1.45), c("empirical","parametric") )
+dev.off()
 
 
 
@@ -664,12 +782,10 @@ dev.off()
 source("Code_aid.R"); aid$load("meta", "PT")
 library("mapdata") ;  map <- maps::map('worldHires','Germany') ;  dev.off()
 
-
 range(sapply(PT, function(x)   max(x$prec, na.rm=T))) # 21.5 80.8
 range(sapply(PT, function(x) range(x$temp, na.rm=T))) # -16.4  34.6
 range(sapply(PT, function(x) range(x$temp5,na.rm=T))) # -21.3  29.8
 hist(sapply(PT, nrow), breaks=30, col="salmon")
-
 
 PT5 <- pblapply(1:142, function(i){
   x <- PT[[i]]
@@ -697,12 +813,50 @@ logAxis(2)
 })
 dev.off()
 
-
-# toDo: recreate paper Fig 2 (PT emp) or use fig/PTQstats p104 with different ylim
-
-
-
 rm(dummy, map)
+
+
+# _ empirical quantiles: -----
+source("Code_aid.R"); aid$load("PT")
+potsdam <- PT[[104]]
+potsdam_P <- pbsapply(aid$mid, function(temp) 
+{
+seldat <- potsdam$prec[ potsdam$temp5>(t-1) & potsdam$temp5<=(t+1)]
+quantileMean(seldat, probs=aid$probs)
+})
+potsdam_SS <- pbsapply(aid$mid, function(temp) sum(potsdam$temp5>(t-1) & potsdam$temp5<=(t+1)))
+
+sstext <- function(n, lab=c(n,n), ...)
+  {
+  lg <- which(potsdam_SS>n)
+  x <- aid$mid[c(head(lg,1), tail(lg,1))]
+  axis(1, x, lab,  mgp=c(-3,-1.1,0), tcl=0.3, ...)
+  box()
+  }
+
+pdf("fig/fig2.pdf", height=3.5, width=3.5, pointsize=11) # recreate!!!
+par(mar=c(3,2.8,0.2,0.4), mgp=c(1.8,0.5,0))
+plot(1, type="n", ylab="Precipitation [mm/h]  and  VPsat [hPa]", xlab="", yaxt="n", xaxt="n", bty="n",
+     yaxs="i", ylim=c(1.6, 45), xlim=c(3,29.5), xaxs="r", log="y")
+title(xlab="Event dewpoint temperature  [ \U{00B0}C]", mgp=c(1.7,1,0) )
+logAxis(side=2, mgp=c(2.3,0.7,0) )
+axis(1,c(0,10,20,30))
+points(potsdam$temp5, potsdam$prec, col=rgb(.3,.3,.3, alpha=0.3), pch=16, cex=1)
+cc_lines(c(1.5,3.5))
+for(p in names(aid$probcols)) lines(aid$mid, potsdam_P[,p], col=probcols[p], lwd=2)
+legend("topleft", c("99.99 %Q","99.9","99","90", "VPsat", "CC-rate"),
+   pch=c(4:1+14, NA, NA), col=c(rev(aid$probcols),1,1), bg="white",
+   lty=c(rep(1,5),3), inset=c(0, 0), cex=0.8)
+sstext(25,  cex=0.7)
+sstext(100, cex=0.7)
+sstext(300, cex=0.7)
+dev.off()
+
+
+
+
+
+
 
 
 # 3.2. PT-quantiles computation ------------------------------------------------
@@ -813,6 +967,7 @@ library("mapdata") ;  map <- maps::map('worldHires','Germany') ;  dev.off()
 
 dn <- c("quantileMean","weighted2","gpa", "wak")
 dc <- c("brown1", "deepskyblue4", "darkolivegreen4", "peru")
+
 pdf("fig/PTQ_stats.pdf", height=5)
 dummy <- pblapply(1:142, function(i){
   aid$stationplot(i, meta, map, xlim=c(4.8,21), ylim=c(5,130) )
