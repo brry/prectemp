@@ -513,7 +513,6 @@ if(d=="")
 })
 dev.off()
 
-
 rm(dn, dcol, simNA, dummy, breaks, hist17, histgp)
 
 
@@ -523,14 +522,14 @@ source("Code_aid.R"); aid$load("simQA", "PREC")
 
 pdf("fig/fig5.pdf", height=3, width=3.5, pointsize=10)
 par(mar=c(3,3,0.2,0.2), mgp=c(1.8,0.7,0), las=1, lend=1)
-plot(1, type="n", xlim=c(25,1300), ylim=c(5,20), log="x", xaxs="i", main="", xaxt="n",
-       xlab="sample size n (logarithmic axis)", ylab="")
-logAxis(1)
+plot(1, type="n", xlim=c(25,830), ylim=log10(c(5,30)), xaxs="i", main="", yaxt="n",
+       xlab="sample size n", ylab="")
+logAxis(2)
 for(d in c("quantileMean","weightedc"))
   ciBand(yl=simQA["30%",d,"99.9%",], 
          ym=simQA["50%",d,"99.9%",],
          yu=simQA["70%",d,"99.9%",], x=aid$n, colm=if(d=="weightedc") "blue" else "green3", add=TRUE)
-abline(h=quantileMean(PREC, probs=0.999), lty=3)
+abline(h=quantileMean(log10(PREC), probs=0.999), lty=3)
 legend("bottomright", c("Weighted distribution average",
        "Empirical quantile", "Central 40% of simulations", "Quantile of full sample"),
        lwd=c(2,2,11,1), lty=c(1,1,1,3), col=c("blue","green3",8,1), bg="white", cex=0.8)
@@ -540,40 +539,41 @@ dev.off()
 
 
 
-dn4 <- dimnames(simQA)[[2]][23:26]
-dn7 <- dimnames(simQA)[[2]][27:33]
-col4 <- RColorBrewer::brewer.pal(4, "Set2") ; names(col4) <- dn4
-col7 <- RColorBrewer::brewer.pal(7, "Set2") ; names(col7) <- dn7
-
+dn5 <- dimnames(simQA)[[2]][c(33,23,24,26,25)]
+dn6 <- dimnames(simQA)[[2]][27:32] ; dn6 <- sort(dn6)
+col5 <- RColorBrewer::brewer.pal(5, "Set2") ; names(col5) <- dn5
+col6 <- RColorBrewer::brewer.pal(6, "Set2") ; names(col6) <- dn6
 
 pdf("fig/fig6.pdf", height=3, width=3.5, pointsize=10)
 #for(smooth in c(1,3,5,7,9,11,13,15)){
-smooth <- 3
+smooth <- 9; {
 par(mfrow=c(1,2), mar=c(2,0,0.2,0.4), oma=c(1,3,0,0), mgp=c(1.8,0.7,0), las=1)
 ## panel 1
-plot(1, type="n", xlim=c(25,1300), ylim=c(7,20), log="x", xaxs="i", main="", xaxt="n",
-       xlab="", ylab="")
-logAxis(1)
-for(d in dn7) lines(aid$n, movAv(simQA["50%",d,"99.9%",], smooth), col=col7[d])
-abline(h=quantileMean(PREC, probs=0.999), lty=3)
-text(50, 19, "MLE")
-legend("bottomright", dn7, lwd=2, col=col7, bg="white", cex=0.5)
+plot(1, type="n", xlim=c(25,830), ylim=log10(c(6,21)), xaxs="i", main="", yaxt="n",
+       xlab="sample size n", ylab="")
+logAxis(2)
+for(d in dn6) lines(aid$n, movAv(simQA["50%",d,"99.9%",], smooth), col=col6[d])
+abline(h=quantileMean(log10(PREC), probs=0.999), lty=3)
+text(50, log10(19), "MLE", adj=0)
+legend("bottomright", replace(dn6, 6, "GPD_MLE_Renext"), lwd=2, col=col6, bg="white", cex=0.65)
 ## panel 2
 #par(mar=c(3,0,0.2,0.4))
-plot(1, type="n", xlim=c(25,1300), ylim=c(7,20), log="x", xaxs="i", main="", xaxt="n",
-       xlab="", ylab="", yaxt="n")
-logAxis(1)
-for(d in dn4) lines(aid$n, movAv(simQA["50%",d,"99.9%",], smooth), col=col4[d])
-abline(h=quantileMean(PREC, probs=0.999), lty=3)
-text(70, 19, "LM / PWM")
-legend("bottomright", dn4, lwd=2, col=col4, bg="white", cex=0.5)
+plot(1, type="n", xlim=c(25,830), ylim=log10(c(6,21)), xaxs="i", main="", yaxt="n",
+       xlab="sample size n", ylab="")
+logAxis(2, labels=FALSE)
+for(d in dn5) lines(aid$n, movAv(simQA["50%",d,"99.9%",], smooth), col=col5[d])
+abline(h=quantileMean(log10(PREC), probs=0.999), lty=3)
+text(50, log10(19), "LM / PWM", adj=0)
+legend("bottomright", dn5, lwd=2, col=col5, bg="white", cex=0.65)
 #
-title(xlab="sample size n (logarithmic axis)", outer=TRUE, mgp=c(-0.2,-1,0), xpd=NA)
+dens <- density(log10(PREC))
+#lines(25+dens$y*1000, dens$x)
+title(xlab="sample size n", outer=TRUE, mgp=c(-0.2,-1,0), xpd=NA)
 title(ylab="Random sample 99.9% quantile  [mm/h]", outer=TRUE, mgp=c(1.8,1,0), xpd=NA)
-# } # end for loop smooth
+ } # end for loop smooth
 dev.off()
 
-rm(dn4,dn7,col4,col7)
+rm(dn5,dn6,col5,col6, smooth, dens)
 
 
 # 2.4. Truncation dependency ---------------------------------------------------
