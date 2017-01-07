@@ -520,7 +520,7 @@ rm(dn, dcol, simNA, dummy, breaks, hist17, histgp)
 # _ SSD visualistation -----
 source("Code_aid.R"); aid$load("simQA", "PREC")
 
-pdf("fig/fig5.pdf", height=3, width=3.5, pointsize=10)
+pdf("fig/fig2.pdf", height=3, width=3.5, pointsize=10)
 par(mar=c(3,3,0.2,0.2), mgp=c(1.8,0.7,0), las=1, lend=1)
 plot(1, type="n", xlim=c(25,830), ylim=log10(c(5,30)), xaxs="i", main="", yaxt="n",
        xlab="sample size n", ylab="")
@@ -544,7 +544,7 @@ dn6 <- dimnames(simQA)[[2]][27:32] ; dn6 <- sort(dn6)
 col5 <- RColorBrewer::brewer.pal(5, "Set2") ; names(col5) <- dn5
 col6 <- RColorBrewer::brewer.pal(6, "Set2") ; names(col6) <- dn6
 
-pdf("fig/fig6.pdf", height=3, width=3.5, pointsize=10)
+pdf("fig/fig3.pdf", height=3, width=3.5, pointsize=10)
 #for(smooth in c(1,3,5,7,9,11,13,15)){
 smooth <- 9; {
 par(mfrow=c(1,2), mar=c(2,0,0.2,0.4), oma=c(1,3,0,0), mgp=c(1.8,0.7,0), las=1)
@@ -625,7 +625,7 @@ rm(trqL_stats)
 
 source("Code_aid.R"); aid$load("PREC","trunc")
 
-pdf("fig/fig3.pdf", height=3.5, width=3.5, pointsize=11)
+pdf("fig/fig4.pdf", height=3.5, width=3.5, pointsize=11)
 par(mar=c(3,2.8,0.2,0.4), mgp=c(1.8,0.5,0))
 plot(1, type="n", xlab="Truncation proportion", xlim=0:1, xaxs="i", xaxt="n",
      ylab="99.9% quantile estimate  [mm/h]", ylim=c(0.8, 1.9), yaxt="n")
@@ -654,7 +654,7 @@ dnlegend <- sub("_","-", dnlegend)
 dnlegend <- sub("_","\n",dnlegend)
 dnlegend <- sub("-","_", dnlegend)
 
-pdf("fig/fig4.pdf", height=5, pointsize=11)
+pdf("fig/fig5.pdf", height=5, pointsize=11)
 par(mfrow=c(5,5), oma=c(2,2.9,0.2,0.4), mar=c(0,0,0,0), xpd=F, mgp=c(1.8,0.5,0), cex=1)
 for(d in dn)
 {
@@ -664,7 +664,7 @@ if(d %in% dn[c( 1,21)]) logAxis(2) else logAxis(2, labels=FALSE)
 if(d %in% dn[c(21,25)]) axis(1, 0:5*0.2, c("0",1:4*0.2,"1"))
 abline(v=0.8, col=8)
 for(i in 1:142) lines(trunc_stats, trq_stats[d,"99.9%",,i], col=addAlpha("blue"))
-textField(0.5, log10(60), dnlegend[d], cex=0.6)
+textField(0.5, log10(50), dnlegend[d], cex=0.8)
 }
 title(xlab="Truncation proportion", outer=TRUE, line=0.7, cex=1)
 title(ylab="Quantile estimate  [mm/h]", outer=TRUE, line=1.5, cex=1)
@@ -816,58 +816,14 @@ dev.off()
 rm(dummy, map)
 
 
-# _ empirical quantiles: -----
-source("Code_aid.R"); aid$load("PT")
-potsdam <- PT[[104]]
-potsdam_P <- pbsapply(aid$mid, function(temp) 
-{
-seldat <- potsdam$prec[ potsdam$temp5>(t-1) & potsdam$temp5<=(t+1)]
-quantileMean(seldat, probs=aid$probs)
-})
-potsdam_SS <- pbsapply(aid$mid, function(temp) sum(potsdam$temp5>(t-1) & potsdam$temp5<=(t+1)))
-
-sstext <- function(n, lab=c(n,n), ...)
-  {
-  lg <- which(potsdam_SS>n)
-  x <- aid$mid[c(head(lg,1), tail(lg,1))]
-  axis(1, x, lab,  mgp=c(-3,-1.1,0), tcl=0.3, ...)
-  box()
-  }
-
-pdf("fig/fig2.pdf", height=3.5, width=3.5, pointsize=11) # recreate!!!
-par(mar=c(3,2.8,0.2,0.4), mgp=c(1.8,0.5,0))
-plot(1, type="n", ylab="Precipitation [mm/h]  and  VPsat [hPa]", xlab="", yaxt="n", xaxt="n", bty="n",
-     yaxs="i", ylim=c(1.6, 45), xlim=c(3,29.5), xaxs="r", log="y")
-title(xlab="Event dewpoint temperature  [ \U{00B0}C]", mgp=c(1.7,1,0) )
-logAxis(side=2, mgp=c(2.3,0.7,0) )
-axis(1,c(0,10,20,30))
-points(potsdam$temp5, potsdam$prec, col=rgb(.3,.3,.3, alpha=0.3), pch=16, cex=1)
-cc_lines(c(1.5,3.5))
-for(p in names(aid$probcols)) lines(aid$mid, potsdam_P[,p], col=probcols[p], lwd=2)
-legend("topleft", c("99.99 %Q","99.9","99","90", "VPsat", "CC-rate"),
-   pch=c(4:1+14, NA, NA), col=c(rev(aid$probcols),1,1), bg="white",
-   lty=c(rep(1,5),3), inset=c(0, 0), cex=0.8)
-sstext(25,  cex=0.7)
-sstext(100, cex=0.7)
-sstext(300, cex=0.7)
-dev.off()
-
-
-
-
-
-
-
-
 # 3.2. PT-quantiles computation ------------------------------------------------
-
-source("Code_aid.R"); aid$load("PT", "weights")
+source("Code_aid.R"); aid$load("PT", "weights"); rm(BGE,weights_all,weights_dn)
 
 # long computing time (1 minute per station)
 library(parallel) # for parallel lapply execution
-cl <- makeCluster( detectCores()-0 )
+cl <- makeCluster( detectCores()-1 )
 clusterExport(cl, c("PT","aid", "weights"))
-PTQ <- pblapply(X=1:142, cl=cl, FUN=function(i)
+PTQ <- pblapply(X=1:3, cl=cl, FUN=function(i)
   {
   x <- PT[[i]]   #  x <- PT[[3]]; t=19.5
   # Quantile estimates per temperature bin
