@@ -41,8 +41,8 @@ if(FALSE){ # You need to download and install the packages only once
 packinst <- function(n) if(!requireNamespace(n, quietly=TRUE)) install.packages(n)
 sapply(c("berryFunctions", "extremeStat", "pblapply", "maps", "gplots", "gtools",
          "mapdata", "OSMscale", "RCurl"), packinst) 
-berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.13.10(2017-01-03)
-berryFunctions::instGit("brry/extremeStat")   # must be version >= 1.2.14 (2017-01-05)
+berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.13.14(2017-01-06)
+berryFunctions::instGit("brry/extremeStat")   # must be version >= 1.2.16 (2017-01-07)
 berryFunctions::instGit("brry/rdwd")  # not yet on CRAN must be >= 0.5.4  (2016-11-25)
 berryFunctions::instGit("brry/OSMscale")      # must be version >= 0.3.12 (2016-11-24)
 }
@@ -284,80 +284,91 @@ qn <- function(simn)
 library(parallel) # for parallel lapply execution
 cl <- makeCluster( detectCores()-1 )
 clusterExport(cl, c("aid", "PREC", "qn", "ransample"))#, "dweight"))
-dummy <- pblapply(X=1:14, cl=cl, FUN=qn)
+dummy <- pblapply(X=1:2000, cl=cl, FUN=qn)
 stopCluster(cl)
 rm(cl, dummy)
 rm(qn, ransample)
 
 
 
-# 2.2. SSD checks --------------------------------------------------------------
+# 2.2. SSD array + checks ------------------------------------------------------
 
 # Read in simulation results + convert to array
 # (1.4 GB for 2000 simulations!)
 simEnv <- new.env()
 dummy <- pblapply(dir("sim", full=TRUE), load, envir=simEnv) # 6 secs / 1 min for 500 sims
-simQ <- as.list(mget(gtools::mixedsort(ls(envir=simEnv)), envir=simEnv))
-simQ <- l2array(simQ) # this takes a minute, 400MB for 745 sims
-save(simQ, file="dataprods/simQ.Rdata")
-rm(simEnv, dummy)
-
-load("dataprods/simQ.Rdata")
+simQL <- as.list(mget(gtools::mixedsort(ls(envir=simEnv)), envir=simEnv))
+simQ <- l2array(simQL)
+names(dimnames(simQ))[4] <- "simnr"
+rm(simEnv, dummy, simQL)
 
 # checks:
 str(simQ)
 dim(simQ)
 lapply(dimnames(simQ), head, 50)
-
 apply(simQ[1:35, "99.9%", as.character(40:45),], 1:2, min, na.rm=TRUE)
 
-
 # too small values:
-which(10^simQ<0.5, arr.ind=TRUE) # some laplace
-simQ[which(10^simQ<0.5)] # nothing really bad
-which(10^simQ[,1:4,,]<0.5, arr.ind=TRUE)
+which(10^simQ<0.5, arr.ind=TRUE) # one single PWM_evir
+simQ["GPD_PWM_evir",1,1,297] # with 10^-1.289 = 0.05
 
 # too large values
-sort(table(rownames(which(10^simQ[1:35, , ,]>400, arr.ind=TRUE))))
+which(simQ[1:35, 1, ,]>15, arr.ind=TRUE) 
+which(simQ["wak", 3, ,]>4, arr.ind=TRUE) 
+simQ[,,20,390]
+#dlq <- distLquantile(ransample(117)[[27]], tr=0.8, probs=aid$probs, list=TRUE)
+#plotLquantile(dlq)
+#dlq$quant
+#simQ[-c(27:32),,38,39]
+#which(simQ["wak", 3, 27,]<2 & simQ["wak", 3, 27,]>1.9, arr.ind=TRUE) 
 
-thres <- c(1:10*100)
+tl <- simQ[1:35, 1, ,]
+hist(tl[tl<2], breaks=50, col=3)
+rm(tl)
+sort(table(rownames(which(simQ[1:35, , ,1:500]>5, arr.ind=TRUE))))
+
+thres <- log10(c(1:10*100))
 toolarge <- pbsapply(thres, function(l) 
-                     apply(10^simQ[1:35, , ,], 1, function(x) sum(x>l,na.rm=TRUE)) )
-colnames(toolarge) <- thres
-colSums(toolarge) # at 400 sims: 12k values > 700, 19k > 400, 44k > 200 
-plot(thres, colSums(toolarge), type="b", log="y", ylim=c(1,1e5), axes=FALSE)
+                     apply(simQ[1:35, , ,1:300], 1, function(x) sum(x>l,na.rm=TRUE)) )
+colnames(toolarge) <- 10^thres
+colSums(toolarge) # at 300 sims: 151k values > 700
+plot(thres, colSums(toolarge), type="b", log="y", ylim=c(1,1e6), axes=FALSE)
 logAxis(2); axis(1)
 for(i in 1:35) lines(thres, replace(toolarge, toolarge==0, 1)[i,])
+rm(thres,i, toolarge)
 
 val <- logSpaced(min=50, max=10000, n=30, plot=F)
-numlarger <- pbsapply(val, function(x) sum(10^simQ[20:35, "99.9%",,]>x, na.rm=T))
+numlarger <- pbsapply(val, function(x) sum(simQ[20:35, "99.9%",,]>log10(x), na.rm=T))
 plot(val, numlarger, log="yx", type="o", axes=F, main="Q99.9% GPD estimates larger than val")
 logAxis(1); logAxis(2)
 
-toolarge99 <- which(10^simQ[1:35,"99%", ,]>500, arr.ind=TRUE)
+toolarge99 <- which(simQ[1:35,"99%", ,1:500]>log10(500), arr.ind=TRUE)
 head(toolarge99)
 sort(table(rownames(toolarge99)))
+rm(toolarge99, numlarger, val)
 
 
 
 # 2.3. Distribution weights ----------------------------------------------------
 
-source("Code_aid.R"); aid$load("simQ", "PREC")
+source("Code_aid.R"); aid$load("PREC")
 # 136k Rainfall hours between 10 and 12 degrees for all stations (PREC)
 Qtrue <- quantileMean(log10(PREC), aid$probs)
 target <- dim(simQ)[3:4]
 Qtrue <- array(rep(Qtrue, prod(target)), dim=target) ; rm(target)
 # rebrand implausible estimates as error (otherwise bias becomes Inf)
-simQ[1:35,,,][simQ[1:35,,,]>log10(800)] <- NA
+simQ[1:35,,,][simQ[1:35,,,]>10] <- NA
+
+
 
 # Bias/Goodness/Error - bias:
-bias <- apply(simQ[1:35,"99.9%",,], 1, function(x) median(abs(x-Qtrue), na.rm=TRUE))
+bias <- pbapply(simQ[1:35,"99.9%",,], 1, function(x) median(abs(x-Qtrue), na.rm=TRUE))
 BGE <- data.frame(bias); rm(bias)
 # goodness of fit (actually badness of fit):
-BGE$gof <- apply(simQ[1:35,"RMSE",,], 1, median, na.rm=TRUE)
+BGE$gof <- pbapply(simQ[1:35,"RMSE",,], 1, median, na.rm=TRUE)
 # error rate:
-BGE$error <- apply(simQ[1:35,1:4,,], 1, function(x) mean(is.na(x))) #proportion
-
+BGE$error <- pbapply(simQ[1:35,1:4,,], 1, function(x) mean(is.na(x))) #proportion
+gc()
 
 weights_all <- BGE[rownames(BGE) !="GPD_BAY_extRemes",]
 if(is.na(weights_all["weightedc","bias"])) 
@@ -373,41 +384,41 @@ weights_dn <- as.data.frame(apply(weights_dn, 2, function(x) x/sum(x)))
 weights <- 0.06-sort(rowMeans(weights_dn))
 weights[weights<0] <- 0
 weights <- weights/sum(weights)
-save(weights, file="dataprods/weights.Rdata")
+
+
+
+# add custom weighted quantile estimates: (7 minutes)
+library(extremeStat)
+simQold <- simQ # backup 
+qww <- data.frame(weightc=weights)
+weightedc <- pbapply(simQ, 3:4, function(x) c(q_weighted(x, weights=qww, onlyc=TRUE),NA))
+# save(weightedc, file="dataprods/weightedc.Rdata")
+#  load("dataprods/weightedc.Rdata")
+simQ["weightedc",,,] <- weightedc
+stopifnot(all(simQold[-22,,,500:900]==simQ[-22,,,500:900], na.rm=TRUE))
+rm(weightedc, simQold, qww); gc()
+save(simQ, file="dataprods/simQ.Rdata") # 1.1 GB!
 
 weights_old <- weights
-
-# add custom weighted quantile estimates:
-library(extremeStat)
-simQold <- simQ # backup # takes about 7 minutes
-weightedc <- pbapply(simQ[,,,], 3:4, function(x) q_weighted(x, weightc=weights)["weightedc",])
-simQ["weightedc",,,] <- weightedc
-#save(weightedc, file="dataprods/weightedc.Rdata")
-#  load("dataprods/weightedc.Rdata")
-stopifnot(all(simQold[-22,,,]==simQ[-22,,,], na.rm=TRUE))
-rm(weightedc, simQold)
-
-save(simQ, file="dataprods/simQ.Rdata")
-
-
 # Now rerun BGE + weights* code to include weightedc in graphics
 stopifnot(all(round(weights,15)==round(weights_old,15))) 
 # weights has not changed, since not dependant on weightedc
 rm(weights_old)
 
+save(weights, weights_dn, weights_all, BGE, file="dataprods/weights.Rdata")
 
 # SSD simulation aggregation:
-simQA <- pbapply(simQ, MARGIN=1:3, quantileMean, probs=c(0.3,0.5,0.7), na.rm=TRUE) # 2 min
+simQA <- pbapply(simQ, MARGIN=1:3, quantileMean, probs=c(0.3,0.5,0.7), na.rm=TRUE) # 3 min
 save(simQA, file="dataprods/simQA.Rdata")
 
 
 
 # _ weights visualization: -------
-source("Code_aid.R"); aid$load("PREC")
+source("Code_aid.R"); aid$load("PREC", "simQA", "weights", "simQ")
 dn <- rownames(weights_all)
 dcol <- rep("grey80", length(dn)) ; names(dcol) <- dn
 dcol[grepl("GPD_", dn)] <- addAlpha("red")
-simNA <- apply(simQ[,1:4,,], 1:3, function(x) mean(is.na(x)))
+simNA <- pbapply(simQ[,1:4,,], 1:3, function(x) mean(is.na(x)))
 
 
 pdf("fig/biasgoferror_weights.pdf")
@@ -432,13 +443,18 @@ rm(cols, labels)
 dev.off()
 
 
-pdf("fig/biasgoferror_all2.pdf", height=5) # 2 min
-par(mfrow=c(2,2), mar=c(3.5,3.5,2,1), mgp=c(2,0.7,0), oma=c(0,0,2,0), las=1)
+
+breaks <- seq(-5,0, by=0.02)
+hist17 <- hist(log10(simQ[ 1:17,"RMSE",,]), breaks=breaks, plot=F)
+histgp <- hist(log10(simQ[23:35,"RMSE",,]), breaks=breaks, plot=F)
+
+pdf("fig/biasgoferror_all.pdf", height=5)
+par(mfrow=c(2,2), mar=c(3.5,3.5,2,1), mgp=c(2,0.7,0), oma=c(0,0,2,0), las=1, lend=1)
 dummy <- pblapply( c(dn, ""), function(d){
 # bias:
   for(qi in 1:2){
   qn <- c("99%","99.9%")[qi]
-  plot(1, type="n", xlim=c(24,1900), ylim=log10(c(3.5,c(15,50)[qi])), 
+  plot(1, type="n", xlim=c(24,1900), ylim=log10(c(4,c(10,40)[qi])), 
        log="x", xaxs="i", main=paste("bias", qn), xaxt="n", yaxt="n",
        xlab="sample size", ylab="Random sample quantile")
   logAxis(1); logAxis(2)
@@ -453,16 +469,15 @@ dummy <- pblapply( c(dn, ""), function(d){
   }
   }
 # gof:
-  breaks <- seq(-4,0, by=0.02)
-  logHist(simQ[1:17,"RMSE",,], breaks=breaks, las=1, col=addAlpha("darkorange"), 
-                ylab="Density", border=NA, xlim=log10(c(0.002, 0.1)), 
-                main="gof", xlab="", yaxt="n")
+  plot(hist17, las=1, col=NA, ylab="Histogram", border=NA, ylim= lim0(hist17$counts),
+       xlim=log10(c(0.002, 0.1)), main="gof", xlab="", yaxt="n", xaxt="n", freq=TRUE)
   title(xlab="Distribution goodness of fit: RMSE(CDF,ECDF)", xpd=TRUE)
-  logHist(simQ[23:35,"RMSE",,], breaks=breaks, col=addAlpha("red"), 
-          logargs=list(xaxt="n"), border=NA, add=TRUE)
+  logAxis(1)
+  plot(hist17, col=addAlpha("grey"), border=NA, add=TRUE, freq=TRUE)
+  plot(histgp, col=addAlpha("red"),  border=NA, add=TRUE, freq=TRUE)
   if(d!="") 
   {
-  logHist(simQ[d,"RMSE",,], breaks=breaks, col=1, logargs=list(xaxt="n"), add=TRUE)
+  hist(log10(simQ[d,"RMSE",,]), breaks=breaks, col="blue", border=NA, add=TRUE, freq=TRUE)
   title(main=round(BGE[d,"gof"],4), adj=0) # median
   }
   # title(main=round(mean(simQ[d,"RMSE",,],na.rm=TRUE),4), adj=1) # mean
@@ -476,6 +491,8 @@ dummy <- pblapply( c(dn, ""), function(d){
   {
   for(p in names(aid$probcols)) lines(aid$n, simNA[d,p,], col="blue")
   title(main=paste0(round(mean(simNA[d,,])*100,2),"%"), adj=0)
+  legend("topright", c(d, "lmomco distributions", "GPD estimates"), lwd=2, 
+         col=c("blue","grey","red"), bg="white")
   }
 #
 title(main=d, outer=TRUE)
@@ -496,7 +513,9 @@ if(d=="")
 })
 dev.off()
 
-rm(dn, dcol, simNA, dummy)
+
+rm(dn, dcol, simNA, dummy, breaks, hist17, histgp)
+
 
 
 # _ SSD visualistation -----
