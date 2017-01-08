@@ -421,24 +421,23 @@ dcol[grepl("GPD_", dn)] <- addAlpha("red")
 simNA <- pbapply(simQ[,1:4,,], 1:3, function(x) mean(is.na(x)))
 
 
-pdf("fig/biasgoferror_weights.pdf")
+pdf("fig/figA.pdf", height=5, pointsize=11)
+par(mfrow=c(1,3), mar=c(2,11,2,1), mgp=c(3,0.2,0), yaxs="i")
 cols <- RColorBrewer::brewer.pal(3, "Set2")
-par(mar=c(2,11,3,1), mgp=c(3,0.2,0))
 barplot(t(replace(weights_all, is.na(weights_all), 0)[,1:3]), horiz=T, las=1, 
-        col=cols, xaxt="n", border=NA)
-labels <- c("Bias", "Badness of Fit", "Error rate")
-legend("top", labels, fill=cols, horiz=TRUE, bty="n", inset=-0.05, border=NA,
-       text.width=strwidth(labels)+strwidth("mm")*c(1.2,1,0.9), xpd=TRUE)
-axis(1, mgp=c(3,0.8,0))
+        col=cols, xaxt="n", border=NA, main="Penalty")
+labels <- c("Bias", "Fit Quality", "Error rate")
+#legend("top", labels, fill=cols, horiz=TRUE, bty="n", inset=-0.05, border=NA,
+#       text.width=strwidth(labels)+strwidth("mm")*c(1.2,1,0.9), xpd=TRUE)
+axis(1, mgp=c(3,0.6,0.3))
 #
-par(mfrow=c(1,2), mar=c(2,4,3,1), mgp=c(3,0.2,0))
+par(mar=c(2,4,2,1), mgp=c(3,0.2,0))
 barplot(t(weights_dn[,1:3]), horiz=T, las=1, col=cols, xaxt="n", border=NA)
-labels <- c("Bias", "Badness of Fit", "Error rate")
-legend("top", labels, fill=cols, horiz=TRUE, bty="n", inset=-0.05, border=NA,
-       text.width=strwidth(labels)+strwidth("mm")*c(1.2,1,0.9), xpd=TRUE)
-axis(1, mgp=c(3,0.8,0))
+for(i in 1:3) title(main=labels[i], col.main=cols[i], adj=c(0,0.36,1)[i])
+axis(1, mgp=c(3,0.6,0.3))
+#
 barplot(weights, horiz=TRUE, las=1, main="Weights", xaxt="n")
-axis(1, mgp=c(3,0.8,0)) # , at=seq(0,0.06, 0.02)
+axis(1, mgp=c(3,0.6,0.3))
 rm(cols, labels)
 dev.off()
 
@@ -448,7 +447,7 @@ breaks <- seq(-5,0, by=0.02)
 hist17 <- hist(log10(simQ[ 1:17,"RMSE",,]), breaks=breaks, plot=F)
 histgp <- hist(log10(simQ[23:35,"RMSE",,]), breaks=breaks, plot=F)
 
-pdf("fig/biasgoferror_all.pdf", height=5)
+pdf("fig/biasgoferror.pdf", height=5)
 par(mfrow=c(2,2), mar=c(3.5,3.5,2,1), mgp=c(2,0.7,0), oma=c(0,0,2,0), las=1, lend=1)
 dummy <- pblapply( c(dn, ""), function(d){
 # bias:
