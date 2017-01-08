@@ -26,7 +26,7 @@ browseURL("http://www.nat-hazards-earth-syst-sci-discuss.net/nhess-2016-183")
 # 2.2. SSD checks
 # 2.3. Distribution weights
 # 2.4. Truncation dependency 
-# 2.5. tempdep Wakeby distribution
+# 2.5. tempdep Weibull distribution
 # 2.6. Sample size bias lin vs log
 
 # 3. Hourly Prec-Temp relationship
@@ -674,17 +674,14 @@ rm(dn,d, dnlegend, i)
 
 
 # 2.5. tempdep Weibull distribution --------------------------------------------
-source("Code_aid.R"); aid$load("PT"); library(lmomco); library(parallel)
+source("Code_aid.R"); aid$load("PT"); library(lmomco)
 
-tdtemp <- seq(4,16,by=2)
-cl <- makeCluster( detectCores()-1 )
-clusterExport(cl, c("PT", "tdtemp")) # 3 min on 3 cores
-tdpar <- pblapply(tdtemp, cl=cl, FUN=function(t) sapply(PT, function(x) # 8 x 20 secs
+tdtemp <- seq(4,16,by=2) # 2 min
+tdpar <- pblapply(tdtemp, FUN=function(t) sapply(PT, function(x) # 8 x 20 secs
   {
   x <- x$prec[ x$temp5>(t-1) & x$temp5<=(t+1)]
   lmomco::parwei(lmom=lmomco::lmoms(log10(x)))$para
   }))
-stopCluster(cl) ; rm(cl)
 
 tdpar <- l2array(tdpar)
 names(dimnames(tdpar)) <- c("par","stat","temp") ; dimnames(tdpar)[[3]] <- tdtemp
@@ -715,7 +712,9 @@ tdsimr <- function() lapply(seq_along(tdsimt), function(i) lmomco::rlmomco(
 
 aid$load("weights"); rm(BGE,weights_all,weights_dn)
 library(extremeStat)
-tdsimq <- function(seed) {set.seed(seed)
+tdsimq <- function(seed) 
+  {
+  set.seed(seed)
   out <- lapply(tdsimr(), extremeStat::distLquantile, truncate=0.8, gpd=FALSE, order=FALSE, 
          probs=aid$probs, weightc=weights, quiet=TRUE)
   out <- berryFunctions::l2array(out)
@@ -723,7 +722,7 @@ tdsimq <- function(seed) {set.seed(seed)
   out
   }
 
-cl <- makeCluster( detectCores()-1 ) # 20 min on 3 cores
+cl <- makeCluster( detectCores()-1 ) # 1000 runs 20 min on 3 cores
 clusterExport(cl, c(paste0("tdsim",c("t","n","p","r","q")), "weights","xys","aid")) 
 tdsimL <- pblapply(1:1000, cl=cl, FUN=tdsimq)
 stopCluster(cl) ; rm(cl)
@@ -733,10 +732,10 @@ save(tdsimt,tdsimn,tdsimp,tdsimr,tdsimq,tdsim,xys, file="dataprods/tdsim.Rdata")
 
 
 source("Code_aid.R"); aid$load("tdsim", "tdpar")
-tdsimA <- apply(tdsim, 1:3, quantile, probs=c(0.3,0.5,0.7), na.rm=TRUE)
+tdsimA <- apply(tdsim, 1:3, quantileMean, probs=c(0.3,0.5,0.7), na.rm=TRUE)
 
 
-pdf("fig/fig6.pdf", height=4, pointsize=11) 
+pdf("fig/fig7.pdf", height=4, pointsize=11) 
 layout(matrix(c(1:3, rep(4,3)), ncol=2), width=c(4,6))
 par(mar=c(0,3,0,0.3), oma=c(3.5,0,0.1,0), mgp=c(2.1, 0.8,0), las=1, lend=1, cex=1)
 # plot temperature dependent parameters:
@@ -750,20 +749,21 @@ rm(leg)
 title(xlab="Dewpoint temperature bin midpoint  [\U{00B0}C]", outer=TRUE)
 ##
 par(mar=c(0,3.5,0,0.3))
-plot(1, type="n", xlim=c(5,17), ylim=c(8,200), log="y", xlab="", yaxt="n",
+plot(1, type="n", xlim=c(5,20), ylim=c(8,200), log="y", xlab="", yaxt="n",
      ylab="Weibull random sample 99.9% quantile  [mm/h]")
 logAxis(2)
 ciBand(yu=10^tdsimA["70%","quantileMean","99.9%",], nastars=FALSE,
        ym=10^tdsimA["50%","quantileMean","99.9%",],
-       yl=10^tdsimA["30%","quantileMean","99.9%",], colm="green3", add=TRUE)
+       yl=10^tdsimA["30%","quantileMean","99.9%",], x=tdsimt, colm="green3", add=TRUE)
 ciBand(yu=10^tdsimA["70%","weightedc","99.9%",], nastars=FALSE,
        ym=10^tdsimA["50%","weightedc","99.9%",],
-       yl=10^tdsimA["30%","weightedc","99.9%",], colm="blue", add=TRUE)
+       yl=10^tdsimA["30%","weightedc","99.9%",], x=tdsimt, colm="blue", add=TRUE)
 aid$cc_lines(NA)
-tplot <- seq(5,17,0.1)
+tplot <- seq(5,21,1)
 lines(tplot, sapply(tplot, function(t) 10^lmomco::quawei(f=0.999, tdsimp(t))), lty=3, col=2)
 legend("topleft", c("CC-scaling", "Real value from parameters in the left panel", 
-  "Weighted average of 12 distribution functions", "Empirical quantile", "Central 40% of 1000 simulations"),
+                    "Weighted average of 12 distribution functions", 
+                    "Empirical quantile", "Central 40% of 1000 simulations"),
        lwd=c(1,1,2,2,11), lty=c(1,3,1,1), col=c(1,2,"blue","green3",8), bg="white", cex=0.8)
 text(20, c(1.25, 1.45), c("empirical","parametric") )
 dev.off()
