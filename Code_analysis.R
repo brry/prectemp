@@ -42,7 +42,7 @@ packinst <- function(n) if(!requireNamespace(n, quietly=TRUE)) install.packages(
 sapply(c("berryFunctions", "extremeStat", "pblapply", "maps", "gplots", "gtools",
          "mapdata", "OSMscale", "RCurl"), packinst) 
 berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.13.15(2017-01-07)
-berryFunctions::instGit("brry/extremeStat")   # must be version >= 1.2.16 (2017-01-07)
+berryFunctions::instGit("brry/extremeStat")   # must be version >= 1.2.18 (2017-01-08)
 berryFunctions::instGit("brry/rdwd")  # not yet on CRAN must be >= 0.5.4  (2016-11-25)
 berryFunctions::instGit("brry/OSMscale")      # must be version >= 0.3.12 (2016-11-24)
 }
@@ -887,7 +887,7 @@ rm(dummy, map)
 source("Code_aid.R"); aid$load("PT","weights"); rm(BGE,weights_all,weights_dn)
 library(extremeStat)
 
-# long computing time (1 minute per station)
+# long computing time (1 minute per station, 47 min on 3 cores)
 library(parallel) # for parallel lapply execution
 cl <- makeCluster( detectCores()-1 )
 clusterExport(cl, c("PT","aid", "weights"))
@@ -899,9 +899,6 @@ PTQL <- pblapply(X=1:142, cl=cl, FUN=function(i){
     extremeStat::distLquantile(log10(seldat), probs=aid$probs, truncate=0.8, weightc=weights, 
                   order=FALSE, ssquiet=TRUE, time=FALSE, progbars=FALSE)
     })
-  # Transform into array for faster subsetting:
-  #binQ2 <- array(unlist(binQ), dim=c(38, 4, 203),  # c(nrow(binQ[[1]]), ncol(binQ[[1]]), length(binQ))
-  #     dimnames=list(distr=rownames(binQ[[1]]), prob=colnames(binQ[[1]]), temp=aid$mid))
   binQ2 <- berryFunctions::l2array(binQ)
   names(dimnames(binQ2)) <- c("distr","prob","temp") ; dimnames(binQ2)[[3]] <- aid$mid
   return(binQ2)
@@ -909,13 +906,13 @@ PTQL <- pblapply(X=1:142, cl=cl, FUN=function(i){
 stopCluster(cl); rm(cl)
 PTQ <- l2array(PTQL)
 names(dimnames(PTQ))[4] <- "stat"; dimnames(PTQ)[[4]] <- names(PT)
-save(PTQ, file="dataprods/PTQ.Rdata")     # 30 mins
+save(PTQ, file="dataprods/PTQ.Rdata") 
 rm(PTQL)
 
 dim(PTQ) # 142 stations
 str(PTQ) # each at 203 temperature bins
-aid$mid[10] # for 14.7 °C:
-PTQ[,,10,1]
+aid$mid[100] # for 14.7 °C:
+PTQ[,,100,1]
 
 head(PT[[113]])
 n113 <- sapply(aid$mid, function(t) sum(PT[[113]]$temp5>(t-1) & PT[[113]]$temp5<=(t+1)) )
@@ -992,14 +989,15 @@ dev.off()
 
 pdf("fig/fig7.pdf", height=5)
 par(mfrow=c(1,2), mar=c(2,2,0.5,0.5), oma=c(1.5,1.5,0,0) )
-aid$PTplot(prob="99%", outer=TRUE, line=0, ylim=c(4,120), main="")
-statav <- PTQlines(prob="99.9%", dn="quantileMean", col="green3")
-lines(aid$mid, 10^statav, lwd=2)  
+aid$PTplot(prob="99.9%", outer=TRUE, line=0, ylim=c(4,120), main="")
+statav_e <- PTQlines(prob="99.9%", dn="quantileMean", col="green3")
+lines(aid$mid, 10^statav_e, lwd=2)  
 legend("topleft", "Empirical", bty="n")
 #
-aid$PTplot(prob="99%", outer=TRUE, line=5, ylim=c(4,120), main="")
+aid$PTplot(prob="99.9%", outer=TRUE, line=5, ylim=c(4,120), main="")
 statav <- PTQlines(prob="99.9%", dn="weightedc", col="blue")
 lines(aid$mid, 10^statav, lwd=2) 
+lines(aid$mid, 10^statav_e, col=8) 
 legend("topleft", "Parametric", bty="n")
 dev.off()
 
