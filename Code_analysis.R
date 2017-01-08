@@ -421,7 +421,7 @@ dcol[grepl("GPD_", dn)] <- addAlpha("red")
 simNA <- pbapply(simQ[,1:4,,], 1:3, function(x) mean(is.na(x)))
 
 
-pdf("fig/figA.pdf", height=5, pointsize=11)
+pdf("fig/fig4.pdf", height=5, pointsize=11)
 par(mfrow=c(1,3), mar=c(2,11,2,1), mgp=c(3,0.2,0), yaxs="i")
 cols <- RColorBrewer::brewer.pal(3, "Set2")
 barplot(t(replace(weights_all, is.na(weights_all), 0)[,1:3]), horiz=T, las=1, 
@@ -624,7 +624,7 @@ rm(trqL_stats)
 
 source("Code_aid.R"); aid$load("PREC","trunc")
 
-pdf("fig/fig4.pdf", height=3.5, width=3.5, pointsize=11)
+pdf("fig/fig5.pdf", height=3.5, width=3.5, pointsize=11)
 par(mar=c(3,2.8,0.2,0.4), mgp=c(1.8,0.5,0))
 plot(1, type="n", xlab="Truncation proportion", xlim=0:1, xaxs="i", xaxt="n",
      ylab="99.9% quantile estimate  [mm/h]", ylim=c(0.8, 1.9), yaxt="n")
@@ -653,7 +653,7 @@ dnlegend <- sub("_","-", dnlegend)
 dnlegend <- sub("_","\n",dnlegend)
 dnlegend <- sub("-","_", dnlegend)
 
-pdf("fig/fig5.pdf", height=5, pointsize=11)
+pdf("fig/fig6.pdf", height=5, pointsize=11)
 par(mfrow=c(5,5), oma=c(2,2.9,0.2,0.4), mar=c(0,0,0,0), xpd=F, mgp=c(1.8,0.5,0), cex=1)
 for(d in dn)
 {
@@ -987,7 +987,7 @@ dev.off()
 
 
 
-pdf("fig/fig7.pdf", height=5)
+pdf("fig/fig8.pdf", height=5)
 par(mfrow=c(1,2), mar=c(2,2,0.5,0.5), oma=c(1.5,1.5,0,0) )
 aid$PTplot(prob="99.9%", outer=TRUE, line=0, ylim=c(4,120), main="")
 statav_e <- PTQlines(prob="99.9%", dn="quantileMean", col="green3")
