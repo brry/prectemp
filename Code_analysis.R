@@ -992,6 +992,7 @@ par(mfrow=c(1,2), mar=c(2,2,0.5,0.5), oma=c(1.5,1.5,0,0) )
 aid$PTplot(prob="99.9%", outer=TRUE, line=0, ylim=c(4,120), main="")
 statav_e <- PTQlines(prob="99.9%", dn="quantileMean", col="green3")
 lines(aid$mid, 10^statav_e, lwd=2)  
+aid$cc_lines(NA, mainargs=list(col=2))
 legend("topleft", "Empirical", bty="n")
 #
 aid$PTplot(prob="99.9%", outer=TRUE, line=5, ylim=c(4,120), main="")
@@ -999,6 +1000,7 @@ statav <- PTQlines(prob="99.9%", dn="weightedc", col="blue")
 lines(aid$mid, 10^statav, lwd=2) 
 lines(aid$mid, 10^statav_e, col=8) 
 legend("topleft", "Parametric", bty="n")
+aid$cc_lines(NA, mainargs=list(col=2))
 dev.off()
 
 
