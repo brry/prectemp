@@ -674,30 +674,98 @@ rm(dn,d, dnlegend, i)
 
 
 
-# 2.5. tempdep Wakeby distribution ---------------------------------------------
+# 2.5. tempdep Weibull distribution --------------------------------------------
+source("Code_aid.R"); aid$load("PT"); library(lmomco); library(parallel)
+
+tdtemp <- seq(4,16,by=2)
+cl <- makeCluster( detectCores()-1 )
+clusterExport(cl, c("PT", "tdtemp")) # 3 min on 3 cores
+tdpar <- pblapply(tdtemp, cl=cl, FUN=function(t) sapply(PT, function(x) # 8 x 20 secs
+  {
+  x <- x$prec[ x$temp5>(t-1) & x$temp5<=(t+1)]
+  lmomco::parwei(lmom=lmomco::lmoms(log10(x)))$para
+  }))
+stopCluster(cl) ; rm(cl)
+
+tdpar <- l2array(tdpar)
+names(dimnames(tdpar)) <- c("par","stat","temp") ; dimnames(tdpar)[[3]] <- tdtemp
+str(tdpar)
+save(tdpar,tdtemp, file="dataprods/tdpar.Rdata") 
 
 
-pdf("fig/fig7.pdf", height=4, pointsize=11)             # recreate?
-layout(matrix(c(1:5, rep(6,5)), ncol=2), width=c(4,6))
-par(mar=c(0,3.5,0,0.3), oma=c(3.5,0,0.1,0), mgp=c(2.1, 0.8,0), las=1, lend=1, cex=1)
-for(i in 1:5)
-{
-  plot(midw[1:195], parT[i,(49:255)[1:195]], type="l", xaxt="n", yaxt="n", ylab="")
-  axis(2, pretty2(extendrange(par("usr")[3:4], f=-0.1), n=3)  )
-  legend("topleft", parN[i], inset=c(-0.10, -0.13), bty="n")
-  lines(c(3,16,30), sapply(c(3,16,30), function(t) linpar(t)$para[i]), col=2)
-}
+source("Code_aid.R"); aid$load("PT","tdpar"); library(lmomco); library(parallel)
+xys <- lapply(1:3, function(param)
+  {
+  xy <- function(t,p) cbind(x=rep(tdtemp[t],142), y=tdpar[p,,t])
+  xy <- do.call(rbind, lapply(seq_along(tdtemp), xy, p=param))
+  xy <- as.data.frame(xy, check.names=FALSE)
+  xy
+  })
+
+# temp-dep simulation: temperature, sample size n, parameters, random numbers, quantiles
+tdsimt <- 5:20
+tdsimn <- pbsapply(tdsimt, function(t) sapply(PT, function(x) sum(x$temp5>(t-1) & x$temp5<=(t+1))))
+tdsimn <- colMeans(tdsimn)
+tdsimp <- function(t) list(type="wei", para=c(
+   zeta=unname(predict(lm(y~x, data=xys[[1]]),newdata=data.frame(x=t))),
+   beta=unname(predict(lm(y~x, data=xys[[2]]),newdata=data.frame(x=t))),
+  delta=unname(predict(lm(y~x, data=xys[[3]]),newdata=data.frame(x=t)))
+  ), source="parwei")
+tdsimr <- function() lapply(seq_along(tdsimt), function(i) lmomco::rlmomco(
+  n=tdsimn[i], para=tdsimp(tdsimt[i]) ))
+
+aid$load("weights"); rm(BGE,weights_all,weights_dn)
+library(extremeStat)
+tdsimq <- function(seed) {set.seed(seed)
+  out <- lapply(tdsimr(), extremeStat::distLquantile, truncate=0.8, gpd=FALSE, order=FALSE, 
+         probs=aid$probs, weightc=weights, quiet=TRUE)
+  out <- berryFunctions::l2array(out)
+  names(dimnames(out)) <- c("distr","prob","temp") ; dimnames(out)[[3]] <- tdsimt
+  out
+  }
+
+cl <- makeCluster( detectCores()-1 ) # 20 min on 3 cores
+clusterExport(cl, c(paste0("tdsim",c("t","n","p","r","q")), "weights","xys","aid")) 
+tdsimL <- pblapply(1:1000, cl=cl, FUN=tdsimq)
+stopCluster(cl) ; rm(cl)
+
+tdsim <- l2array(tdsimL)
+save(tdsimt,tdsimn,tdsimp,tdsimr,tdsimq,tdsim,xys, file="dataprods/tdsim.Rdata") 
+
+
+source("Code_aid.R"); aid$load("tdsim", "tdpar")
+tdsimA <- apply(tdsim, 1:3, quantile, probs=c(0.3,0.5,0.7), na.rm=TRUE)
+
+
+pdf("fig/fig6.pdf", height=4, pointsize=11) 
+layout(matrix(c(1:3, rep(4,3)), ncol=2), width=c(4,6))
+par(mar=c(0,3,0,0.3), oma=c(3.5,0,0.1,0), mgp=c(2.1, 0.8,0), las=1, lend=1, cex=1)
+# plot temperature dependent parameters:
+leg <- function(i) {abline(lm(y~x, data=xys[[i]]), col=2) 
+     legend("topleft", legend=dimnames(tdpar)[[1]][i], inset=c(-0.0, -0.0), bty="n")}
+plot(xys[[1]], ann=FALSE, axes=F); axis(2,at=seq(0.5,1,0.5)) ; leg(1); box()
+plot(xys[[2]], ann=FALSE, axes=F); axis(2,at=seq(0.5,1.5,0.5)) ; leg(2); box()
+plot(xys[[3]], ann=FALSE, axes=F); axis(2,at=seq(1,3,1)) ; leg(3); box()
 axis(1)
-#title(main="Wakeby (parameter) values depending on temperature bin", outer=TRUE)
-title(xlab="Temperature bin midpoint  [\U{00B0}C]", outer=TRUE)
+rm(leg)
+title(xlab="Dewpoint temperature bin midpoint  [\U{00B0}C]", outer=TRUE)
 ##
-# par(mar=c(3,3,0.2,0.4), mgp=c(1.8,0.7,0), lend=1)
-plotwn(dist="quantileMean", qw=0.2, label=F )
-       #main="Sample size dependency of quantile estimations")
-plotwn(dist="weightedc", add=T, qw=0.2, colm="blue", label=F)
-legend("topleft", c("CC-scaling", "Weighted average of 12 distribution functions",
-       "Empirical quantile", "Central 40% of 2000 simulations"),
-       lwd=c(1,2,2,11), lty=1, col=c(1,"blue","green3",8), bg="white", cex=0.8)
+par(mar=c(0,3.5,0,0.3))
+plot(1, type="n", xlim=c(5,17), ylim=c(8,200), log="y", xlab="", yaxt="n",
+     ylab="Weibull random sample 99.9% quantile  [mm/h]")
+logAxis(2)
+ciBand(yu=10^tdsimA["70%","quantileMean","99.9%",], nastars=FALSE,
+       ym=10^tdsimA["50%","quantileMean","99.9%",],
+       yl=10^tdsimA["30%","quantileMean","99.9%",], colm="green3", add=TRUE)
+ciBand(yu=10^tdsimA["70%","weightedc","99.9%",], nastars=FALSE,
+       ym=10^tdsimA["50%","weightedc","99.9%",],
+       yl=10^tdsimA["30%","weightedc","99.9%",], colm="blue", add=TRUE)
+aid$cc_lines(NA)
+tplot <- seq(5,17,0.1)
+lines(tplot, sapply(tplot, function(t) 10^lmomco::quawei(f=0.999, tdsimp(t))), lty=3, col=2)
+legend("topleft", c("CC-scaling", "Real value from parameters in the left panel", 
+  "Weighted average of 12 distribution functions", "Empirical quantile", "Central 40% of 1000 simulations"),
+       lwd=c(1,1,2,2,11), lty=c(1,3,1,1), col=c(1,2,"blue","green3",8), bg="white", cex=0.8)
 text(20, c(1.25, 1.45), c("empirical","parametric") )
 dev.off()
 
@@ -817,38 +885,42 @@ rm(dummy, map)
 
 
 # 3.2. PT-quantiles computation ------------------------------------------------
-source("Code_aid.R"); aid$load("PT", "weights"); rm(BGE,weights_all,weights_dn)
+source("Code_aid.R"); aid$load("PT","weights"); rm(BGE,weights_all,weights_dn)
+library(extremeStat)
 
 # long computing time (1 minute per station)
 library(parallel) # for parallel lapply execution
 cl <- makeCluster( detectCores()-1 )
 clusterExport(cl, c("PT","aid", "weights"))
-PTQ <- pblapply(X=1:3, cl=cl, FUN=function(i)
-  {
+PTQL <- pblapply(X=1:142, cl=cl, FUN=function(i){
   x <- PT[[i]]   #  x <- PT[[3]]; t=19.5
   # Quantile estimates per temperature bin
   binQ <- lapply(aid$mid, function(t) {
     seldat <- x$prec[ x$temp5>(t-1) & x$temp5<=(t+1)]
-    extremeStat::distLquantile(seldat, probs=aid$probs, truncate=0.8, weightc=NA, 
+    extremeStat::distLquantile(log10(seldat), probs=aid$probs, truncate=0.8, weightc=weights, 
                   order=FALSE, ssquiet=TRUE, time=FALSE, progbars=FALSE)
     })
   # Transform into array for faster subsetting:
-  binQ2 <- array(unlist(binQ), dim=c(38, 4, 203),  # c(nrow(binQ[[1]]), ncol(binQ[[1]]), length(binQ))
-       dimnames=list(distr=rownames(binQ[[1]]), prob=colnames(binQ[[1]]), temp=aid$mid))
+  #binQ2 <- array(unlist(binQ), dim=c(38, 4, 203),  # c(nrow(binQ[[1]]), ncol(binQ[[1]]), length(binQ))
+  #     dimnames=list(distr=rownames(binQ[[1]]), prob=colnames(binQ[[1]]), temp=aid$mid))
+  binQ2 <- berryFunctions::l2array(binQ)
+  names(dimnames(binQ2)) <- c("distr","prob","temp") ; dimnames(binQ2)[[3]] <- aid$mid
   return(binQ2)
   })
+stopCluster(cl); rm(cl)
+PTQ <- l2array(PTQL)
+names(dimnames(PTQ))[4] <- "stat"; dimnames(PTQ)[[4]] <- names(PT)
 save(PTQ, file="dataprods/PTQ.Rdata")     # 30 mins
-stopCluster(cl)
-rm(cl)
+rm(PTQL)
 
-length(PTQ) # 142 stations
-str(PTQ[[1]]) # each at 203 temperature bins
-aid$mid[100] # for 14.9 °C:
-PTQ[[1]][,,100]
+dim(PTQ) # 142 stations
+str(PTQ) # each at 203 temperature bins
+aid$mid[10] # for 14.7 °C:
+PTQ[,,10,1]
 
 head(PT[[113]])
 n113 <- sapply(aid$mid, function(t) sum(PT[[113]]$temp5>(t-1) & PT[[113]]$temp5<=(t+1)) )
-all(n113 == PTQ[[113]]["n_full",1,] )
+all(n113 == PTQ["n_full",1,,113], na.rm=TRUE)
 rm(n113)
 
 
@@ -863,10 +935,14 @@ col=addAlpha("black"),
 ...
 )
 {
-stats <- sapply(PTQ, function(x){
-         lines(aid$mid, x[dn, prob, ], col=col, ...)
-         x[dn, prob, ]})
-# average of stations (bins with >50 values, rainQuantile>150 ignored):
+if(dn%in%c("n_full","n","threshold")) 
+  {
+  prob <- dimnames(PTQ)[[2]][1]
+  for(i in 1:142) lines(aid$mid,    PTQ[dn,prob,,i], col=col, ...) 
+  } else
+  for(i in 1:142) lines(aid$mid, 10^PTQ[dn,prob,,i],  col=col, ...) 
+stats <- PTQ[dn,prob,,]
+# average of stations (bins with <50 values, rainQuantile>150 ignored):
 stats <- replace(stats, stats>cut, NA)       ### toDo: make sure this is mentioned in paper!
 statav <- rowMeans(stats, na.rm=TRUE)
 statav[apply(stats,1,function(x) sum(!is.na(x))<50)] <- NA
@@ -876,13 +952,12 @@ statav
 pdf("fig/PTQ.pdf", height=5)
 # _a. empirical and parametric quantiles in one plot ----------------------------
 par(mar=c(4,4,2,0.5), mgp=c(2.5,0.6,0))
-dn <- c("quantileMean", "weighted2")              ### later: use weightedc!
+dn <- c("quantileMean", "weightedc")
 dc <- addAlpha(c("red", "blue"))
 for(prob in c("90%", "99%", "99.9%", "99.99%"))
 {
 aid$PTplot(prob=prob)
-dummy <- sapply(PTQ, function(x){
-         for(d in 1:2) lines(aid$mid, x[dn[d], prob, ], col=dc[d]) })
+for(s in 1:142) for(d in 1:2) lines(aid$mid, 10^PTQ[dn[d], prob, ,s], col=dc[d])
 }
 # _b. Qemp/par side by side -----------------------------------------------------
 par(mfrow=c(1,2), mar=c(2,2,1.5,0.5), oma=c(1.5,1.5,1.5,0) )
@@ -893,27 +968,42 @@ for(d in 1:2)
 aid$PTplot(prob=prob, outer=TRUE, line=0)
 title(main=dn[d])
 statav <- PTQlines(prob=prob, dn=dn[d], col=dc[d])
-lines(aid$mid, statav, lwd=2)  
+lines(aid$mid, 10^statav, lwd=2)  
 }}
 #
 # _c. PTQ for each distribution function ----------------------------------------
 par(mfrow=c(1,1), mar=c(4,4,2,0.5), oma=c(0,0,0,0) )
-dummy <- pblapply(dimnames(PTQ[[1]])$distr, function(dn){ 
+dummy <- pblapply(dimnames(PTQ)[[1]], function(dn){ 
 ylim <- c(5,130)
 cut <- 150
 if(dn=="n_full")    {ylim <- c(5,2000); cut <- 1e5}
 if(dn=="n")         {ylim <- c(1, 400); cut <- 1e5}
-if(dn=="threshold") {ylim <- c(0.5,25); cut <- 1e5}
+if(dn=="threshold") {ylim <- c(0.1,1.5); cut <- 1e5}
 aid$PTplot(prob="99.9%", ylim=ylim, main=dn, cc=!dn %in% c("n_full","n","threshold"))
 statav <- PTQlines(prob="99.9%", dn=dn, cut=cut)
-lines(aid$mid, statav, lwd=2, col="red")
+if(dn%in%c("n_full","n","threshold")) lines(aid$mid,    statav, lwd=2, col="red") else
+                                      lines(aid$mid, 10^statav, lwd=2, col="red") 
 if(dn=="n_full") abline(h=25, lwd=2, col="red")
 if(dn=="n") abline(h=5, lwd=2, col="red")
 })
-rm(dummy, prob, d, dn, dc, statav)
+rm(dummy, prob, d, dn, s, dc, statav)
 dev.off()
 
-# ToDo: recreate paper Fig 8
+
+
+pdf("fig/fig7.pdf", height=5)
+par(mfrow=c(1,2), mar=c(2,2,0.5,0.5), oma=c(1.5,1.5,0,0) )
+aid$PTplot(prob="99%", outer=TRUE, line=0, ylim=c(4,120), main="")
+statav <- PTQlines(prob="99.9%", dn="quantileMean", col="green3")
+lines(aid$mid, 10^statav, lwd=2)  
+legend("topleft", "Empirical", bty="n")
+#
+aid$PTplot(prob="99%", outer=TRUE, line=5, ylim=c(4,120), main="")
+statav <- PTQlines(prob="99.9%", dn="weightedc", col="blue")
+lines(aid$mid, 10^statav, lwd=2) 
+legend("topleft", "Parametric", bty="n")
+dev.off()
+
 
 
 # 3.4. PTQ per station ---------------------------------------------------------
