@@ -239,9 +239,14 @@ allprecs <- pblapply(seq(-11,23,0.2), binprec, xlim=log10(c(0.5,80)),
 dev.off()
 
 
+
 # 2.1. SSD computation ---------------------------------------------------------
 
 source("Code_aid.R"); aid$load("PREC"); library(extremeStat)
+
+fullq <- distLquantile(log10(PREC), probs=aid$probs, truncate=0.8, gpd=FALSE) # hangs 30 secs at 82% CDFS
+
+10^fullq[1:18,"99.99%", drop=FALSE]
 
 ransample <- function(simn, trunc=0) # random sample generator
   {
