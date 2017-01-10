@@ -959,8 +959,8 @@ if(dn%in%c("n_full","n","threshold"))
   } else
   for(i in 1:142) lines(aid$mid, 10^PTQ[dn,prob,,i],  col=col, ...) 
 stats <- PTQ[dn,prob,,]
-# average of stations (bins with <50 values, rainQuantile>150 ignored):
-stats <- replace(stats, stats>cut, NA)       ### toDo: make sure this is mentioned in paper!
+# average of stations (bins with <50 values, log10(rainQuantile)>150 ignored):
+stats <- replace(stats, stats>cut, NA)  
 statav <- rowMeans(stats, na.rm=TRUE)
 statav[apply(stats,1,function(x) sum(!is.na(x))<50)] <- NA
 statav
@@ -1022,6 +1022,33 @@ lines(aid$mid, 10^statav, lwd=2)
 lines(aid$mid, 10^statav_e, col=8) 
 legend("topleft", "Parametric", bty="n")
 aid$cc_lines(NA, mainargs=list(col=2))
+dev.off()
+
+
+# PTQ aggregate across distributions
+source("Code_aid.R"); aid$load("PTQ")
+
+dn <- dimnames(PTQ)[[1]][1:33]
+dc <- rep("grey", length(dn)); names(dc) <- dn
+dc[grepl("GPD_",dn)] <- addAlpha("red")
+dc[dn=="quantileMean"] <- "blue"
+statavs <- pblapply(dn, function(d)
+{
+  stats <- PTQ[d,"99.9%",,]
+  stats <- replace(stats, stats>10, NA)
+  statav <- rowMeans(stats, na.rm=TRUE)
+  statav[apply(stats,1,function(x) sum(!is.na(x))<50)] <- NA
+  statav
+})
+names(statavs) <- dn
+
+pdf("fig/statavs.pdf", height=5)
+par(mfrow=c(1,1), mar=c(2,2,0.5,0.5), oma=c(1.5,1.5,0,0) )
+aid$PTplot(prob="99.9%", outer=TRUE, line=0, ylim=c(4,120), main="", cc=FALSE)
+for(d in dn) lines(as.numeric(names(statavs[[d]])), 10^statavs[[d]], col=dc[d])
+aid$cc_lines(NA)
+legend("bottomright", c("17 lmomco dists", "11 GPD fits", "empirical", "CC scaling"),
+       col=c("grey","red","blue","black"), lty=1, bg="white")
 dev.off()
 
 
