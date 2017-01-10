@@ -244,9 +244,25 @@ dev.off()
 
 source("Code_aid.R"); aid$load("PREC"); library(extremeStat)
 
-fullq <- distLquantile(log10(PREC), probs=aid$probs, truncate=0.8, gpd=FALSE) # hangs 30 secs at 82% CDFS
+dlf <- distLfit(log10(PREC), truncate=0.8) # hangs 30 secs at 82% CDFS
+dlq <- distLquantile(dlf=dlf, probs=aid$probs, truncate=0.8, gpd=FALSE, list=TRUE) 
+round(10^dlq$quant[1:18, 1:4, drop=FALSE],1)
+plotLquantile(dlq, log=TRUE)
 
-10^fullq[1:18,"99.99%", drop=FALSE]
+plotLquantile(distLquantile(dlf=dlf,probs=0.999,truncate=0.8,gpd=F,list=T), 
+              log=TRUE, nbest=17) ; points(quantile(log10(PREC),0.999), 0.3, pch=16)
+
+plotLquantile(distLquantile(dlf=dlf,probs=0.999,truncate=0.8,gpd=F,list=T), 
+              log=TRUE, nbest=4) ; points(quantile(log10(PREC),0.999), 0.3, pch=16)
+
+pdf("fig/dists_fullsample.pdf")
+p <- c(0.999,0.9999)
+plotLquantile(distLquantile(dlf=dlf,probs=p,truncate=0.8,gpd=F,list=T), 
+              log=TRUE, legargs=list(bg="white"), nbest=4)
+points(quantile(log10(PREC),p), c(0.3,0.3), pch=16)
+text(quantile(log10(PREC), 0.999), 0.6, "99.9%", adj=0.8)
+text(quantile(log10(PREC), 0.9999), 0.6, "99.99%")
+dev.off()
 
 ransample <- function(simn, trunc=0) # random sample generator
   {
