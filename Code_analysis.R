@@ -426,7 +426,7 @@ dcol[grepl("GPD_", dn)] <- addAlpha("red")
 simNA <- pbapply(simQ[,1:4,,], 1:3, function(x) mean(is.na(x)))
 
 
-pdf("fig/fig4.pdf", height=5, pointsize=11)
+pdf("fig/fig5.pdf", height=5, pointsize=11)
 par(mfrow=c(1,3), mar=c(2,11,2,1), mgp=c(3,0.2,0), yaxs="i")
 cols <- RColorBrewer::brewer.pal(3, "Set2")
 barplot(t(replace(weights_all, is.na(weights_all), 0)[,1:3]), horiz=T, las=1, 
@@ -524,7 +524,7 @@ rm(dn, dcol, simNA, dummy, breaks, hist17, histgp)
 # _ SSD visualistation -----
 source("Code_aid.R"); aid$load("simQA", "PREC")
 
-pdf("fig/fig2.pdf", height=3, width=3.5, pointsize=10)
+pdf("fig/fig3.pdf", height=3, width=3.5, pointsize=10)
 par(mar=c(3,3,0.2,0.2), mgp=c(1.8,0.7,0), las=1, lend=1)
 plot(1, type="n", xlim=c(25,830), ylim=log10(c(5,30)), xaxs="i", main="", yaxt="n",
        xlab="sample size n", ylab="")
@@ -548,7 +548,7 @@ dn6 <- dimnames(simQA)[[2]][27:32] ; dn6 <- sort(dn6)
 col5 <- RColorBrewer::brewer.pal(5, "Set2") ; names(col5) <- dn5
 col6 <- RColorBrewer::brewer.pal(6, "Set2") ; names(col6) <- dn6
 
-pdf("fig/fig3.pdf", height=3, width=3.5, pointsize=10)
+pdf("fig/fig4.pdf", height=3, width=3.5, pointsize=10)
 #for(smooth in c(1,3,5,7,9,11,13,15)){
 smooth <- 9; {
 par(mfrow=c(1,2), mar=c(2,0,0.2,0.4), oma=c(1,3,0,0), mgp=c(1.8,0.7,0), las=1)
@@ -629,7 +629,7 @@ rm(trqL_stats)
 
 source("Code_aid.R"); aid$load("PREC","trunc")
 
-pdf("fig/fig5.pdf", height=3.5, width=3.5, pointsize=11)
+pdf("fig/fig6.pdf", height=3.5, width=3.5, pointsize=11)
 par(mar=c(3,2.8,0.2,0.4), mgp=c(1.8,0.5,0))
 plot(1, type="n", xlab="Truncation proportion", xlim=0:1, xaxs="i", xaxt="n",
      ylab="99.9% quantile estimate  [mm/h]", ylim=c(0.8, 1.9), yaxt="n")
@@ -658,7 +658,7 @@ dnlegend <- sub("_","-", dnlegend)
 dnlegend <- sub("_","\n",dnlegend)
 dnlegend <- sub("-","_", dnlegend)
 
-pdf("fig/fig6.pdf", height=5, pointsize=11)
+pdf("fig/fig7.pdf", height=5, pointsize=11)
 par(mfrow=c(5,5), oma=c(2,2.9,0.2,0.4), mar=c(0,0,0,0), xpd=F, mgp=c(1.8,0.5,0), cex=1)
 for(d in dn)
 {
@@ -740,7 +740,7 @@ source("Code_aid.R"); aid$load("tdsim", "tdpar")
 tdsimA <- apply(tdsim, 1:3, quantileMean, probs=c(0.3,0.5,0.7), na.rm=TRUE)
 
 
-pdf("fig/fig7.pdf", height=4, pointsize=11) 
+pdf("fig/fig8.pdf", height=4, pointsize=11) 
 layout(matrix(c(1:3, rep(4,3)), ncol=2), width=c(4,6))
 par(mar=c(0,3,0,0.3), oma=c(3.5,0,0.1,0), mgp=c(2.1, 0.8,0), las=1, lend=1, cex=1)
 # plot temperature dependent parameters:
@@ -992,7 +992,7 @@ dev.off()
 
 
 
-pdf("fig/fig8.pdf", height=5)
+pdf("fig/fig2.pdf", height=5)
 par(mfrow=c(1,2), mar=c(2,2,0.5,0.5), oma=c(1.5,1.5,0,0) )
 aid$PTplot(prob="99.9%", outer=TRUE, line=0, ylim=c(4,120), main="")
 statav_e <- PTQlines(prob="99.9%", dn="quantileMean", col="green3")
