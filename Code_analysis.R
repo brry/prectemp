@@ -549,7 +549,7 @@ rm(dn, dcol, simNA, dummy, breaks, hist17, histgp)
 
 
 # _ SSD visualistation -----
-source("Code_aid.R"); aid$load("simQA", "PREC")
+source("Code_aid.R"); aid$load("simQA", "PREC", "weights")
 
 pdf("fig/fig3.pdf", height=3, width=3.5, pointsize=10)
 par(mar=c(3,3,0.2,0.2), mgp=c(1.8,0.7,0), las=1, lend=1)
@@ -566,6 +566,24 @@ legend("bottomright", c("Weighted distribution average",
        lwd=c(2,2,11,1), lty=c(1,1,1,3), col=c("blue","green3",8,1), bg="white", cex=0.8)
 text(50, c(8, 15), c("empirical","parametric") )
 title(ylab="Random sample 99.9% quantile  [mm/h]       ")
+dev.off()
+
+
+pdf("fig/samplesize_dependency_alldists.pdf", height=5, pointsize=10)
+par(mar=c(3,3,0.2,0.2), mgp=c(1.8,0.7,0), las=1, lend=1)
+dummy <- pblapply(rownames(weights_all), function(d){
+plot(1, type="n", xlim=c(25,830), ylim=log10(c(5,30)), xaxs="i", main="", yaxt="n",
+       xlab="sample size n", ylab="")
+logAxis(2)
+  ciBand(yl=simQA["30%",d,"99.9%",], 
+         ym=simQA["50%",d,"99.9%",],
+         yu=simQA["70%",d,"99.9%",], x=aid$n, colm="orange", add=TRUE)
+abline(h=quantileMean(log10(PREC), probs=0.999), lty=3)
+legend("bottomright", c(d, "Central 40% of simulations", "Quantile of full sample"),
+       lwd=c(2,11,1), lty=c(1,1,3), col=c(addAlpha("orange",c(1,0.3)),1), bg="white", cex=0.8)
+title(ylab="Random sample 99.9% quantile  [mm/h]       ")
+})
+rm(dummy)
 dev.off()
 
 
