@@ -36,7 +36,7 @@ dewtemp=function(airtemp, relhum)
   #browseURL("https://en.wikipedia.org/wiki/Dew_point#Calculating_the_dew_point")
   # Buck, A. L. (1981), "New equations for computing vapor pressure and enhancement factor", 
   # J. Appl. Meteorol. 20: 1527-1532
-  a <- 6.1121
+  #a <- 6.1121
   b <- 17.368
   c <- 238.88
   gamfun <- function(at, rh) log(rh/100)+ b*at/(c+at) 
@@ -47,7 +47,8 @@ dewtemp=function(airtemp, relhum)
 dewtemp2=function(airtemp, relhum)
   {
   #browseURL("https://de.wikipedia.org/wiki/Taupunkt#Abh.C3.A4ngigkeit_der_Taupunkttemperatur_von_relativer_Luftfeuchtigkeit_und_Lufttemperatur")
-  K1 <- 6.112 ;   K2 <- 17.62 ;   K3 <- 243.12
+  #K1 <- 6.112 ;  
+  K2 <- 17.62 ;   K3 <- 243.12
   K3*(K2*airtemp/(K3+airtemp)+log(relhum/100))/(K2*K3/(K3+airtemp)-log(relhum/100))
   }
 
