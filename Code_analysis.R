@@ -435,7 +435,7 @@ save(simQA, file="dataprods/simQA.Rdata")
 
 
 # _ weights visualization: -------
-source("Code_aid.R"); aid$load("PREC", "simQA", "weights", "simQ")
+source("Code_aid.R"); aid$load("weights")
 
 weights_plot <- replace(weights_all, is.na(weights_all), 0)[,1:3]
 weights_plot <- weights_plot[!rownames(weights_plot) %in% 
@@ -459,13 +459,16 @@ for(i in 1:3) title(main=labels[i], col.main=cols[i], adj=c(0.38,0.51,0.68)[i],
                     cex.main=1, outer=TRUE, line=-1.3)
 axis(1, at=pretty2(par("usr")[1:2], n=2, force=TRUE), mgp=c(3,0.6,0.3), cex=1)
 #
-barplot(weights, horiz=TRUE, las=1, main="Weights", xaxt="n")
+barplot(weights, horiz=TRUE, las=1, main="Weights", xaxt="n", border=NA)
 title()
 axis(1, at=pretty2(par("usr")[1:2], n=2, force=TRUE), mgp=c(3,0.6,0.3), cex=1)
+axis(2, at=c(-1,22), labels=FALSE, tcl=0)
 rm(cols, labels)
 rm(i)
 dev.off()
 
+
+source("Code_aid.R"); aid$load("PREC", "simQA", "weights", "simQ")
 
 dn <- rownames(weights_all)
 dcol <- rep("grey80", length(dn)) ; names(dcol) <- dn
