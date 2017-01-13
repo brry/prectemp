@@ -570,7 +570,7 @@ smooth <- 9; {
 par(mfrow=c(1,2), mar=c(2,0,0.2,0.4), oma=c(1,3,0,0), mgp=c(1.8,0.7,0), las=1)
 ## panel 1
 plot(1, type="n", xlim=c(25,830), ylim=log10(c(6,21)), xaxs="i", main="", yaxt="n",
-       xlab="sample size n", ylab="")
+       xlab="", ylab="")
 logAxis(2)
 for(d in dn6) lines(aid$n, movAv(simQA["50%",d,"99.9%",], smooth), col=col6[d])
 abline(h=quantileMean(log10(PREC), probs=0.999), lty=3)
@@ -579,7 +579,7 @@ legend("bottomright", replace(dn6, 6, "GPD_MLE_Renext"), lwd=2, col=col6, bg="wh
 ## panel 2
 #par(mar=c(3,0,0.2,0.4))
 plot(1, type="n", xlim=c(25,830), ylim=log10(c(6,21)), xaxs="i", main="", yaxt="n",
-       xlab="sample size n", ylab="")
+       xlab="", ylab="")
 logAxis(2, labels=FALSE)
 for(d in dn5) lines(aid$n, movAv(simQA["50%",d,"99.9%",], smooth), col=col5[d])
 abline(h=quantileMean(log10(PREC), probs=0.999), lty=3)
