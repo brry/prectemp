@@ -436,33 +436,41 @@ save(simQA, file="dataprods/simQA.Rdata")
 
 # _ weights visualization: -------
 source("Code_aid.R"); aid$load("PREC", "simQA", "weights", "simQ")
-dn <- rownames(weights_all)
-dcol <- rep("grey80", length(dn)) ; names(dcol) <- dn
-dcol[grepl("GPD_", dn)] <- addAlpha("red")
-simNA <- pbapply(simQ[,1:4,,], 1:3, function(x) mean(is.na(x)))
+
+weights_plot <- replace(weights_all, is.na(weights_all), 0)[,1:3]
+weights_plot <- weights_plot[!rownames(weights_plot) %in% 
+                               c("GPD_MLE_Renext_2par", paste0("weighted",1:3), "quantileMean"),]
+weights_plot <- as.data.frame(apply(weights_plot, 2, function(x) x/sum(x,na.rm=TRUE)))
 
 
-pdf("fig/fig5.pdf", height=5, pointsize=11)
+pdf("fig/fig5.pdf", height=5, pointsize=12)
 par(mfrow=c(1,3), mar=c(2,11,2,1), mgp=c(3,0.2,0), yaxs="i")
 cols <- RColorBrewer::brewer.pal(3, "Set2")
-barplot(t(replace(weights_all, is.na(weights_all), 0)[,1:3]), horiz=T, las=1, 
+barplot(t(weights_plot), horiz=T, las=1, 
         col=cols, xaxt="n", border=NA, main="Penalty")
 labels <- c("Bias", "Fit Quality", "Error rate")
 #legend("top", labels, fill=cols, horiz=TRUE, bty="n", inset=-0.05, border=NA,
 #       text.width=strwidth(labels)+strwidth("mm")*c(1.2,1,0.9), xpd=TRUE)
 axis(1, mgp=c(3,0.6,0.3))
 #
-par(mar=c(2,4,2,1), mgp=c(3,0.2,0))
+par(mar=c(2,4,2,1), mgp=c(3,0.2,0), cex=1.2)
 barplot(t(weights_dn[,1:3]), horiz=T, las=1, col=cols, xaxt="n", border=NA)
-for(i in 1:3) title(main=labels[i], col.main=cols[i], adj=c(0,0.36,1)[i])
-axis(1, mgp=c(3,0.6,0.3))
+for(i in 1:3) title(main=labels[i], col.main=cols[i], adj=c(0.38,0.51,0.68)[i], 
+                    cex.main=1, outer=TRUE, line=-1.3)
+axis(1, at=pretty2(par("usr")[1:2], n=2, force=TRUE), mgp=c(3,0.6,0.3), cex=1)
 #
 barplot(weights, horiz=TRUE, las=1, main="Weights", xaxt="n")
-axis(1, mgp=c(3,0.6,0.3))
+title()
+axis(1, at=pretty2(par("usr")[1:2], n=2, force=TRUE), mgp=c(3,0.6,0.3), cex=1)
 rm(cols, labels)
+rm(i)
 dev.off()
 
 
+dn <- rownames(weights_all)
+dcol <- rep("grey80", length(dn)) ; names(dcol) <- dn
+dcol[grepl("GPD_", dn)] <- addAlpha("red")
+simNA <- pbapply(simQ[,1:4,,], 1:3, function(x) mean(is.na(x)))
 
 breaks <- seq(-5,0, by=0.02)
 hist17 <- hist(log10(simQ[ 1:17,"RMSE",,]), breaks=breaks, plot=F)
