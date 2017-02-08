@@ -40,11 +40,9 @@ browseURL("http://www.nat-hazards-earth-syst-sci-discuss.net/nhess-2016-183")
 if(FALSE){ # You need to download and install the packages only once
 packinst <- function(n) if(!requireNamespace(n, quietly=TRUE)) install.packages(n)
 sapply(c("berryFunctions", "extremeStat", "pblapply", "maps", "gplots", "gtools",
-         "mapdata", "OSMscale", "RCurl"), packinst) 
-berryFunctions::instGit("brry/berryFunctions")# must be version >= 1.13.15(2017-01-07)
-berryFunctions::instGit("brry/extremeStat")   # must be version >= 1.2.18 (2017-01-08)
-berryFunctions::instGit("brry/rdwd")  # not yet on CRAN must be >= 0.5.4  (2016-11-25)
-berryFunctions::instGit("brry/OSMscale")      # must be version >= 0.3.12 (2016-11-24)
+         "mapdata", "OSMscale", "RCurl", "rdwd"), packinst) 
+# If OSMscale does not install automatically, check out:
+browseURL("https://github.com/brry/OSMscale#intro")
 }
 library(berryFunctions); library(pbapply) # potentially needed in every section
 
