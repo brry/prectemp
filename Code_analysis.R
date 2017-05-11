@@ -38,9 +38,11 @@ browseURL("http://www.nat-hazards-earth-syst-sci-discuss.net/nhess-2016-183")
 
 # 0. Packages ------------------------------------------------------------------
 if(FALSE){ # You need to download and install the packages only once
-packinst <- function(n) if(!requireNamespace(n, quietly=TRUE)) install.packages(n)
-sapply(c("berryFunctions", "extremeStat", "pblapply", "maps", "gplots", "gtools",
-         "mapdata", "OSMscale", "RCurl", "rdwd"), packinst) 
+packs <- c("berryFunctions", "extremeStat", "pbapply", "maps", "gplots", "gtools",
+         "mapdata", "OSMscale", "RCurl", "rdwd", "hexbin")
+isinst <- sapply(packs, requireNamespace, quietly=TRUE)
+install.packages(packs[!isinst])
+rm(packs, isinst)
 # If OSMscale does not install automatically, check out:
 browseURL("https://github.com/brry/OSMscale#intro")
 }
@@ -108,11 +110,28 @@ meta <- sortDF(meta, "id", decreasing = FALSE)
 meta <- meta[,-(1:12)]
 rownames(meta) <- NULL
 save(meta, file="dataprods/meta.Rdata")
-
 rm(T_dur, P_dur, m_dur, prec_id, temp_id, metaIndex)
 
-# CHECK: coordinates #   View(meta)
-colPoints(geoLaenge, geoBreite, m_dur, data=meta, add=F, asp=1.5)
+
+# CHECK: coordinates #   View(meta) # Map of stations
+load("dataprods/meta.Rdata")
+library(OSMscale)
+map <- pointsMap(lat,long, data=meta, zoom=6, type="maptoolkit-topo")
+meta <- cbind(meta, 
+              projectPoints(lat,long, data=meta, from=pll(), to=pmap(map)) )
+
+pdf("fig/stationsmap.pdf", width=5)
+par(mar=rep(0,4))
+plot(map, removeMargin=FALSE)
+rect(par("usr")[1], par("usr")[3], par("usr")[2],par("usr")[4], col=addAlpha("white",0.5), border=NA)
+#colPoints(x, y, m_dur, data=meta, zlab="Time series length  [Years]", 
+#          Range=c(14.9,20.04), legargs=list(mar=c(0.8,0.5,1,0.5), lines=F),
+#          density=FALSE, x1=0.5, y1=0.93, y2=1,x2=1, cex=2)
+colPoints(x, y, ele, data=meta, zlab="Station elevation  [m asl]", 
+          legargs=list(mar=c(0.8,0.5,1,0.5), lines=F), #col=terrain.colors(110)[1:100],
+          density=FALSE, x1=0.5, y1=0.93, y2=1,x2=1, cex=2)
+points(y~x, data=meta, cex=2)
+dev.off()
 
 
 # 1.3. Download data -----------------------------------------------------------
@@ -160,14 +179,15 @@ save(PT_all, file="dataprep/PT_all.Rdata")
 # 1.4. Dewpoint temperature ----------------------------------------------------
 
 load("dataprep/PT_all.Rdata")
+source("Code_aid.R")
+
 # CHECK: dew point temperature:
 pdf("fig/Potsdam_Temp-Hum.pdf", height=5)
-source("Code_aid.R")
 x <- PT_all[[104]] # Potsdam 104, ID 3987
 hist(x$REL_FEUCHTE, col="orange", breaks=40 )
 library(hexbin) # gplot.hexbin
 plot(hexbin(x$LUFTTEMPERATUR, x$REL_FEUCHTE, xbins=80), colramp=seqPal,
-             xlab="hourly air temperature  [?C", ylab="Relative Humidity  [%]",
+             xlab="hourly air temperature  [\U{00B0}C]", ylab="Relative Humidity  [%]",
              main="Potsdam 1995-2015")
 # attr(methods(class=class(hexbin(x$temp, x$hum))), "info")
 x$dewtemp <- aid$dewtemp(x$LUFTTEMPERATUR, x$REL_FEUCHTE) 
