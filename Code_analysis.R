@@ -18,22 +18,25 @@ browseURL("http://www.nat-hazards-earth-syst-sci-discuss.net/nhess-2016-183")
 # 1.1. Select DWD stations
 # 1.2. Meta data weather stations
 # 1.3. Download DWD station data
-# 1.4. Dewpoint temperature
+# 1.4. Dewpoint temperature cumputation
 # 1.5. Dew point temperature of previous 5 hours
+# 1.6. Raw data visualisation
 
 # 2. Sample size dependency
 # 2.1. SSD computation
 # 2.2. SSD checks
-# 2.3. Distribution weights
-# 2.4. Truncation dependency 
-# 2.5. tempdep Weibull distribution
-# 2.6. Sample size bias lin vs log
+# 2.3. SSD visualisation
+
 
 # 3. Hourly Prec-Temp relationship
 # 3.1. Raw data visualisation
 # 3.2. PT-quantiles computation
 # 3.3. PT-quantiles visualization
 # 3.4. PTQ per station
+
+
+# 4. tempdep distribution
+
 
 
 # 0. Packages ------------------------------------------------------------------
@@ -226,11 +229,50 @@ rm(PT_all)
 save(PT, file="dataprods/PT.Rdata")
 
 
+# 1.6. Raw data visualisation --------------------------------------------------
+
+source("Code_aid.R"); aid$load("meta", "PT")
+library("mapdata") ;  map <- maps::map('worldHires','Germany') ;  dev.off()
+
+range(sapply(PT, function(x)   max(x$prec, na.rm=T))) # 21.5 80.8
+range(sapply(PT, function(x) range(x$temp, na.rm=T))) # -16.4  34.6
+range(sapply(PT, function(x) range(x$temp5,na.rm=T))) # -21.3  29.8
+hist(sapply(PT, nrow), breaks=30, col="salmon")
+
+PT5 <- pblapply(1:142, function(i){
+  x <- PT[[i]]
+  data.frame(x=x$temp5[x$prec>2], y=x$prec[x$prec>2])
+  })
+
+# Plot PT-graph with 5 hour preceding dewpoint temp: 
+pdf("fig/RawData_T5.pdf", height=5)
+dummy <- pblapply(1:142, function(i){  # order(meta$ele), ...
+  aid$stationplot(i, meta, map, ylim=c(2.5,70) )
+  points(PT5[[i]], pch=16, col=addAlpha(1))
+  text(-3,50, 50)
+  })
+dev.off()
+
+PT5df <- do.call(rbind, PT5)
+PT5df$y <- log10(PT5df$y)
+
+pdf("fig/RawData_T5_all.pdf", height=5)
+dummy <- pblapply(20:200, function(n){
+gplots::hist2d(PT5df, col=seqPal(n), nbins=n, yaxt="n", xlim=c(-5.1,24),
+xlab="Dew point temperature (mean of preceding 5 hours)  [ \U{00B0}C]",
+ylab="Precipitation  [mm/h]", main=n)#"All stations")
+logAxis(2)
+})
+dev.off()
+
+rm(dummy, map, PT5, PT5df)
+
+
 
 # 2. SSD: Sample size dependency -----------------------------------------------
 
 load("dataprods/PT.Rdata")
-# All 136k rainfall records between 10 and 12 degrees event dewpoint temperature # ToDo: note in paper
+# All 136k rainfall records between 10 and 12 degrees event dewpoint temperature 
 PREC <- unlist(lapply(PT, function(x) x[x$temp5>10 & x$temp5<12, "prec"] ))
 PREC <- unname(PREC)
 save(PREC, file="dataprods/PREC.Rdata")
@@ -281,6 +323,8 @@ points(quantile(log10(PREC),p), c(0.3,0.3), pch=16)
 text(quantile(log10(PREC), 0.999), 0.6, "99.9%", adj=0.8)
 text(quantile(log10(PREC), 0.9999), 0.6, "99.99%")
 dev.off()
+
+rm(p,dlq,dlf)
 
 ransample <- function(simn, trunc=0) # random sample generator
   {
@@ -388,188 +432,10 @@ rm(toolarge99, numlarger, val)
 
 
 
-# 2.3. Distribution weights ----------------------------------------------------
-
-source("Code_aid.R"); aid$load("PREC")
-# 136k Rainfall hours between 10 and 12 degrees for all stations (PREC)
-Qtrue <- quantileMean(log10(PREC), aid$probs)
-target <- dim(simQ)[3:4]
-Qtrue <- array(rep(Qtrue, prod(target)), dim=target) ; rm(target)
-# rebrand implausible estimates as error (otherwise bias becomes Inf)
-simQ[1:35,,,][simQ[1:35,,,]>10] <- NA
-
-
-
-# Bias/Goodness/Error - bias:
-bias <- pbapply(simQ[1:35,"99.9%",,], 1, function(x) median(abs(x-Qtrue), na.rm=TRUE))
-BGE <- data.frame(bias); rm(bias)
-# goodness of fit (actually badness of fit):
-BGE$gof <- pbapply(simQ[1:35,"RMSE",,], 1, median, na.rm=TRUE)
-# error rate:
-BGE$error <- pbapply(simQ[1:35,1:4,,], 1, function(x) mean(is.na(x))) #proportion
-gc()
-
-weights_all <- BGE[rownames(BGE) !="GPD_BAY_extRemes",]
-if(is.na(weights_all["weightedc","bias"])) 
-  weights_all <- weights_all[rownames(weights_all) !="weightedc",]
-weights_all <- as.data.frame(apply(weights_all, 2, function(x) x/sum(x,na.rm=TRUE)))
-weights_all$mean <- rowMeans(weights_all, na.rm=TRUE)
-weights_all <- sortDF(weights_all, "mean", decreasing=FALSE)
-weights_all$mean <- NULL
-#
-weights_dn <- weights_all[rownames(weights_all) %in% lmomco::dist.list(),]
-weights_dn <- as.data.frame(apply(weights_dn, 2, function(x) x/sum(x)))
-#
-weights <- 0.06-sort(rowMeans(weights_dn))
-weights[weights<0] <- 0
-weights <- weights/sum(weights)
-
-
-
-# add custom weighted quantile estimates: (7 minutes)
-library(extremeStat)
-simQold <- simQ # backup 
-qww <- data.frame(weightc=weights)
-weightedc <- pbapply(simQ, 3:4, function(x) c(q_weighted(x, weights=qww, onlyc=TRUE),NA))
-# save(weightedc, file="dataprods/weightedc.Rdata")
-#  load("dataprods/weightedc.Rdata")
-simQ["weightedc",,,] <- weightedc
-stopifnot(all(simQold[-22,,,500:900]==simQ[-22,,,500:900], na.rm=TRUE))
-rm(weightedc, simQold, qww); gc()
-save(simQ, file="dataprods/simQ.Rdata") # 1.1 GB!
-
-weights_old <- weights
-# Now rerun BGE + weights* code to include weightedc in graphics
-stopifnot(all(round(weights,15)==round(weights_old,15))) 
-# weights has not changed, since not dependant on weightedc
-rm(weights_old)
-
-save(weights, weights_dn, weights_all, BGE, file="dataprods/weights.Rdata")
-
-# SSD simulation aggregation:
-simQA <- pbapply(simQ, MARGIN=1:3, quantileMean, probs=c(0.3,0.5,0.7), na.rm=TRUE) # 3 min
-save(simQA, file="dataprods/simQA.Rdata")
-
-
-
-# _ weights visualization: -------
-source("Code_aid.R"); aid$load("weights")
-
-weights_plot <- replace(weights_all, is.na(weights_all), 0)[,1:3]
-weights_plot <- weights_plot[!rownames(weights_plot) %in% 
-                               c("GPD_MLE_Renext_2par", paste0("weighted",1:3), "quantileMean"),]
-weights_plot <- as.data.frame(apply(weights_plot, 2, function(x) x/sum(x,na.rm=TRUE)))
-
-
-pdf("fig/fig5.pdf", height=5, pointsize=12)
-par(mfrow=c(1,3), mar=c(2,11,2,1), mgp=c(3,0.2,0), yaxs="i")
-cols <- RColorBrewer::brewer.pal(3, "Set2")
-barplot(t(weights_plot), horiz=T, las=1, 
-        col=cols, xaxt="n", border=NA, main="Penalty")
-labels <- c("Bias", "Fit Quality", "Error rate")
-#legend("top", labels, fill=cols, horiz=TRUE, bty="n", inset=-0.05, border=NA,
-#       text.width=strwidth(labels)+strwidth("mm")*c(1.2,1,0.9), xpd=TRUE)
-axis(1, mgp=c(3,0.6,0.3))
-#
-par(mar=c(2,4,2,1), mgp=c(3,0.2,0), cex=1.2)
-barplot(t(weights_dn[,1:3]), horiz=T, las=1, col=cols, xaxt="n", border=NA)
-for(i in 1:3) title(main=labels[i], col.main=cols[i], adj=c(0.38,0.51,0.68)[i], 
-                    cex.main=1, outer=TRUE, line=-1.3)
-axis(1, at=pretty2(par("usr")[1:2], n=2, force=TRUE), mgp=c(3,0.6,0.3), cex=1)
-#
-barplot(weights, horiz=TRUE, las=1, main="Weights", xaxt="n", border=NA)
-title()
-axis(1, at=pretty2(par("usr")[1:2], n=2, force=TRUE), mgp=c(3,0.6,0.3), cex=1)
-axis(2, at=c(-1,22), labels=FALSE, tcl=0)
-rm(cols, labels)
-rm(i)
-dev.off()
-
-
-source("Code_aid.R"); aid$load("PREC", "simQA", "weights", "simQ")
-
-dn <- rownames(weights_all)
-dcol <- rep("grey80", length(dn)) ; names(dcol) <- dn
-dcol[grepl("GPD_", dn)] <- addAlpha("red")
-simNA <- pbapply(simQ[,1:4,,], 1:3, function(x) mean(is.na(x)))
-
-breaks <- seq(-5,0, by=0.02)
-hist17 <- hist(log10(simQ[ 1:17,"RMSE",,]), breaks=breaks, plot=F)
-histgp <- hist(log10(simQ[23:35,"RMSE",,]), breaks=breaks, plot=F)
-
-pdf("fig/biasgoferror.pdf", height=5)
-par(mfrow=c(2,2), mar=c(3.5,3.5,2,1), mgp=c(2,0.7,0), oma=c(0,0,2,0), las=1, lend=1)
-dummy <- pblapply( c(dn, ""), function(d){
-# bias:
-  for(qi in 1:2){
-  qn <- c("99%","99.9%")[qi]
-  plot(1, type="n", xlim=c(24,1900), ylim=log10(c(4,c(10,40)[qi])), 
-       log="x", xaxs="i", main=paste("bias", qn), xaxt="n", yaxt="n",
-       xlab="sample size", ylab="Random sample quantile")
-  logAxis(1); logAxis(2)
-  for(dd in dn) lines(aid$n, simQA["50%",dd,qn,], col=dcol[dd])
-  rm(dd)
-  abline(h=quantileMean(log10(PREC), c(0.99,0.999)[qi]), lty=3)
-  if(d!=""){
-  ciBand(yl=simQA["30%",d,qn,], 
-         ym=simQA["50%",d,qn,],
-         yu=simQA["70%",d,qn,], x=aid$n, colm="blue", add=TRUE)
-  if(qi==1) title(main=round(BGE[d,"bias"],2), adj=0)
-  }
-  }
-# gof:
-  plot(hist17, las=1, col=NA, ylab="Histogram", border=NA, ylim= lim0(hist17$counts),
-       xlim=log10(c(0.002, 0.1)), main="gof", xlab="", yaxt="n", xaxt="n", freq=TRUE)
-  title(xlab="Distribution goodness of fit: RMSE(CDF,ECDF)", xpd=TRUE)
-  logAxis(1)
-  plot(hist17, col=addAlpha("grey"), border=NA, add=TRUE, freq=TRUE)
-  plot(histgp, col=addAlpha("red"),  border=NA, add=TRUE, freq=TRUE)
-  if(d!="") 
-  {
-  hist(log10(simQ[d,"RMSE",,]), breaks=breaks, col="blue", border=NA, add=TRUE, freq=TRUE)
-  title(main=round(BGE[d,"gof"],4), adj=0) # median
-  }
-  # title(main=round(mean(simQ[d,"RMSE",,],na.rm=TRUE),4), adj=1) # mean
-# error:
-  plot(1, xlim=c(25,800), ylim=lim0(0.7), type="n", log="x", xaxt="n", 
-       xlab="Sample size", ylab="Proportion of NAs", las=1)
-  logAxis(1)
-  title(main="error")
-  for(dd in dn) for(p in names(aid$probcols)) lines(aid$n, simNA[dd,p,], col=dcol[dd])
-  if(d!="") 
-  {
-  for(p in names(aid$probcols)) lines(aid$n, simNA[d,p,], col="blue")
-  title(main=paste0(round(mean(simNA[d,,])*100,2),"%"), adj=0)
-  legend("topright", c(d, "lmomco distributions", "GPD estimates"), lwd=2, 
-         col=c("blue","grey","red"), bg="white")
-  }
-#
-title(main=d, outer=TRUE)
-if(d=="")
-  {
-  op <- par(mar=c(2,2,2,1), oma=c(0,0,0,0) )
-  for(qi in 1:4){
-  qn <- names(aid$probcols)[qi]
-  plot(1, type="n", xlim=c(24,1900), ylim=log10(c(c(3,4.5,6,6)[qi],c(9,15,50,50)[qi])), 
-       log="x", xaxs="i", main=paste("bias", qn), xaxt="n", yaxt="n",
-       xlab="sample size", ylab="Random sample quantile")
-  logAxis(1); logAxis(2)
-  for(dd in dn) lines(aid$n, simQA["50%",dd,qn,], col=dcol[dd])
-  abline(h=quantileMean(PREC, c(0.9,0.99,0.999,0.9999)[qi]), lty=3)
-  }
-  par(op)
-  }
-})
-dev.off()
-
-rm(dn, dcol, simNA, dummy, breaks, hist17, histgp)
-
-
-
-# _ SSD visualistation -----
+# 2.3. SSD visualitation -----
 source("Code_aid.R"); aid$load("simQA", "PREC", "weights")
 
-pdf("fig/fig3.pdf", height=3, width=3.5, pointsize=10)
+pdf("fig/fig2.pdf", height=3, width=3.5, pointsize=10)
 par(mar=c(3,3,0.2,0.2), mgp=c(1.8,0.7,0), las=1, lend=1)
 plot(1, type="n", xlim=c(25,830), ylim=log10(c(5,30)), xaxs="i", main="", yaxt="n",
        xlab="sample size n", ylab="")
@@ -587,368 +453,11 @@ title(ylab="Random sample 99.9% quantile  [mm/h]       ")
 dev.off()
 
 
-pdf("fig/samplesize_dependency_alldists.pdf", height=5, pointsize=10)
-par(mar=c(3,3,0.2,0.2), mgp=c(1.8,0.7,0), las=1, lend=1)
-dummy <- pblapply(rownames(weights_all), function(d){
-plot(1, type="n", xlim=c(25,830), ylim=log10(c(5,30)), xaxs="i", main="", yaxt="n",
-       xlab="sample size n", ylab="")
-logAxis(2)
-  ciBand(yl=simQA["30%",d,"99.9%",], 
-         ym=simQA["50%",d,"99.9%",],
-         yu=simQA["70%",d,"99.9%",], x=aid$n, colm="orange", add=TRUE)
-abline(h=quantileMean(log10(PREC), probs=0.999), lty=3)
-legend("bottomright", c(d, "Central 40% of simulations", "Quantile of full sample"),
-       lwd=c(2,11,1), lty=c(1,1,3), col=c(addAlpha("orange",c(1,0.3)),1), bg="white", cex=0.8)
-title(ylab="Random sample 99.9% quantile  [mm/h]       ")
-})
-rm(dummy)
-dev.off()
-
-
-
-dn5 <- dimnames(simQA)[[2]][c(33,23,24,26,25)]
-dn6 <- dimnames(simQA)[[2]][27:32] ; dn6 <- sort(dn6)
-col5 <- RColorBrewer::brewer.pal(5, "Set2") ; names(col5) <- dn5
-col6 <- RColorBrewer::brewer.pal(6, "Set2") ; names(col6) <- dn6
-
-pdf("fig/fig4.pdf", height=3, width=3.5, pointsize=10)
-#for(smooth in c(1,3,5,7,9,11,13,15)){
-smooth <- 9; {
-par(mfrow=c(1,2), mar=c(2,0,0.2,0.4), oma=c(1,3,0,0), mgp=c(1.8,0.7,0), las=1)
-## panel 1
-plot(1, type="n", xlim=c(25,830), ylim=log10(c(6,21)), xaxs="i", main="", yaxt="n",
-       xlab="", ylab="")
-logAxis(2)
-for(d in dn6) lines(aid$n, movAv(simQA["50%",d,"99.9%",], smooth), col=col6[d])
-abline(h=quantileMean(log10(PREC), probs=0.999), lty=3)
-text(50, log10(19), "MLE", adj=0)
-legend("bottomright", replace(dn6, 6, "GPD_MLE_Renext"), lwd=2, col=col6, bg="white", cex=0.65)
-## panel 2
-#par(mar=c(3,0,0.2,0.4))
-plot(1, type="n", xlim=c(25,830), ylim=log10(c(6,21)), xaxs="i", main="", yaxt="n",
-       xlab="", ylab="")
-logAxis(2, labels=FALSE)
-for(d in dn5) lines(aid$n, movAv(simQA["50%",d,"99.9%",], smooth), col=col5[d])
-abline(h=quantileMean(log10(PREC), probs=0.999), lty=3)
-text(50, log10(19), "LM / PWM", adj=0)
-legend("bottomright", dn5, lwd=2, col=col5, bg="white", cex=0.65)
-#
-dens <- density(log10(PREC))
-#lines(25+dens$y*1000, dens$x)
-title(xlab="sample size n", outer=TRUE, mgp=c(-0.2,-1,0), xpd=NA)
-title(ylab="Random sample 99.9% quantile  [mm/h]", outer=TRUE, mgp=c(1.8,1,0), xpd=NA)
- } # end for loop smooth
-dev.off()
-
-rm(dn5,dn6,col5,col6, smooth, dens)
-
-
-
-# 2.4. Truncation dependency ---------------------------------------------------
-source("Code_aid.R"); aid$load("PREC", "weights"); rm(BGE,weights_all,weights_dn)
-
-trunc <- seq(0,0.95, len=50)
-library(parallel) ; library(extremeStat)
-cl <- makeCluster( detectCores()-1 )
-clusterExport(cl, c("aid", "PREC", "weights", "trunc")) # 20 min on 3 cores
-trqL <- pblapply(trunc, cl=cl, FUN=function(tr) 
-  berryFunctions::tryStack(
-  extremeStat::distLquantile(log10(PREC), truncate=tr, quiet=TRUE, order=FALSE, 
-                             probs=aid$probs, emp=FALSE, weighted=TRUE, weightc=weights),
-  file=paste0("simlogs/trunc",formatC(round(tr,4),format="f", digits=4),".txt") ))
-stopCluster(cl) ; rm(cl)
-trq <- l2array(trqL)
-names(dimnames(trq)) <- c("distr","prob","trunc")
-dimnames(trq)[[3]] <- formatC(round(trunc,4),format="f", digits=4)
-save(trunc,trq, file="dataprods/trunc.Rdata") 
-rm(trqL)
-
-
-# GPD et al:
-aid$load("PT")
-trunc_stats <- c(0, 0.2, 0.4, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.98) 
-cl <- makeCluster( detectCores()-1 )
-clusterExport(cl, c("aid", "PT", "weights", "trunc_stats")) # 30 min on 3 cores
-trqL_stats <- pblapply(seq_along(PT), cl=cl, FUN=function(stat)
-  berryFunctions::tryStack(
-  {
-  tqL <- lapply(trunc_stats, FUN=function(tr) extremeStat::distLquantile(log10(PT[[stat]]$prec), 
-                 truncate=tr, quiet=TRUE, order=FALSE, probs=aid$probs, weightc=weights))
-  tq <- berryFunctions::l2array(tqL)
-  names(dimnames(tq)) <- c("distr","prob","trunc")
-  dimnames(tq)[[3]] <- trunc_stats
-  tq
-  }, 
-  file=paste0("simlogs/truncstat",stat,".txt") ))
-stopCluster(cl) ; rm(cl)
-trq_stats <- l2array(trqL_stats)
-names(dimnames(trq_stats))[4] <- "stat"
-dimnames(trq_stats)[[4]] <- names(PT)
-save(trunc_stats,trq_stats, file="dataprods/trunc_stats.Rdata") 
-rm(trqL_stats)
-
-
-# _ Visualisation -----
-
-source("Code_aid.R"); aid$load("PREC","trunc")
-
-pdf("fig/fig6.pdf", height=3.5, width=3.5, pointsize=11)
-par(mar=c(3,2.8,0.2,0.4), mgp=c(1.8,0.5,0))
-plot(1, type="n", xlab="Truncation proportion", xlim=0:1, xaxs="i", xaxt="n",
-     ylab="99.9% quantile estimate  [mm/h]", ylim=c(0.8, 1.9), yaxt="n")
-logAxis(2)
-axis(1, 0:5*0.2, c("0",1:4*0.2,"1"))
-dn <- c("weightedc","wei","gpa")
-dnlegend <- c("weighted","Weibull","GPD")
-cols <- RColorBrewer::brewer.pal(5, "Set1")[-(1:2)]; names(cols) <- dn
-for(d in dimnames(trq)[[1]]) lines(trunc, trq[d,"99.9%",], col=8)
-for(d in dn) lines(trunc, trq[d,"99.9%",], col=cols[d], lwd=2)
-abline(v=0.8)
-abline(h=quantileMean(log10(PREC), probs=0.999), lty=3)
-legend("topright", c(dnlegend, "other"),
-       col=c(cols,8), lty=1, lwd=c(rep(2,6),1), bg="white", cex=0.8)
-text(0.01, log10(15), "empirical quantile (full sample)", cex=0.8, adj=0)
-dev.off()
-rm(d,dn,dnlegend,cols)
-
-
-# GPD per station:
-source("Code_aid.R"); aid$load("trunc_stats", "weights"); rm(BGE,weights_all,weights_dn)
-
-dn <- c(names(weights)[1:12], dimnames(trq_stats)[[1]][c(22:34)])
-dnlegend <- dn; names(dnlegend) <- dn
-dnlegend <- sub("_","-", dnlegend)
-dnlegend <- sub("_","\n",dnlegend)
-dnlegend <- sub("-","_", dnlegend)
-
-pdf("fig/fig7.pdf", height=5, pointsize=11)
-par(mfrow=c(5,5), oma=c(2,2.9,0.2,0.4), mar=c(0,0,0,0), xpd=F, mgp=c(1.8,0.5,0), cex=1)
-for(d in dn)
-{
-plot(1, type="n", xlab="", ylim=c(0.8, 1.9), yaxt="n", ylab="", 
-     xlim=0:1, xaxs="i", xaxt="n")
-if(d %in% dn[c( 1,21)]) logAxis(2) else logAxis(2, labels=FALSE)
-if(d %in% dn[c(21,25)]) axis(1, 0:5*0.2, c("0",1:4*0.2,"1"))
-abline(v=0.8, col=8)
-for(i in 1:142) lines(trunc_stats, trq_stats[d,"99.9%",,i], col=addAlpha("blue"))
-textField(0.5, log10(50), dnlegend[d], cex=0.8)
-}
-title(xlab="Truncation proportion", outer=TRUE, line=0.7, cex=1)
-title(ylab="Quantile estimate  [mm/h]", outer=TRUE, line=1.5, cex=1)
-dev.off()
-
-rm(dn,d, dnlegend, i)
-
-
-
-# 2.5. tempdep Weibull distribution --------------------------------------------
-source("Code_aid.R"); aid$load("PT"); library(lmomco)
-
-tdtemp <- seq(4,16,by=2) # 2 min
-tdpar <- pblapply(tdtemp, FUN=function(t) sapply(PT, function(x) # 8 x 20 secs
-  {
-  x <- x$prec[ x$temp5>(t-1) & x$temp5<=(t+1)]
-  lmomco::parwei(lmom=lmomco::lmoms(log10(x)))$para
-  }))
-
-tdpar <- l2array(tdpar)
-names(dimnames(tdpar)) <- c("par","stat","temp") ; dimnames(tdpar)[[3]] <- tdtemp
-str(tdpar)
-save(tdpar,tdtemp, file="dataprods/tdpar.Rdata") 
-
-
-source("Code_aid.R"); aid$load("PT","tdpar"); library(lmomco); library(parallel)
-xys <- lapply(1:3, function(param)
-  {
-  xy <- function(t,p) cbind(x=rep(tdtemp[t],142), y=tdpar[p,,t])
-  xy <- do.call(rbind, lapply(seq_along(tdtemp), xy, p=param))
-  xy <- as.data.frame(xy, check.names=FALSE)
-  xy
-  })
-
-# temp-dep simulation: temperature, sample size n, parameters, random numbers, quantiles
-tdsimt <- 5:20
-tdsimn <- pbsapply(tdsimt, function(t) sapply(PT, function(x) sum(x$temp5>(t-1) & x$temp5<=(t+1))))
-tdsimn <- colMeans(tdsimn)
-tdsimp <- function(t) list(type="wei", para=c(
-   zeta=unname(predict(lm(y~x, data=xys[[1]]),newdata=data.frame(x=t))),
-   beta=unname(predict(lm(y~x, data=xys[[2]]),newdata=data.frame(x=t))),
-  delta=unname(predict(lm(y~x, data=xys[[3]]),newdata=data.frame(x=t)))
-  ), source="parwei")
-tdsimr <- function() lapply(seq_along(tdsimt), function(i) lmomco::rlmomco(
-  n=tdsimn[i], para=tdsimp(tdsimt[i]) ))
-
-aid$load("weights"); rm(BGE,weights_all,weights_dn)
-library(extremeStat)
-tdsimq <- function(seed) 
-  {
-  set.seed(seed)
-  out <- lapply(tdsimr(), extremeStat::distLquantile, truncate=0.8, gpd=FALSE, order=FALSE, 
-         probs=aid$probs, weightc=weights, quiet=TRUE)
-  out <- berryFunctions::l2array(out)
-  names(dimnames(out)) <- c("distr","prob","temp") ; dimnames(out)[[3]] <- tdsimt
-  out
-  }
-
-cl <- makeCluster( detectCores()-1 ) # 1000 runs 20 min on 3 cores
-clusterExport(cl, c(paste0("tdsim",c("t","n","p","r","q")), "weights","xys","aid")) 
-tdsimL <- pblapply(1:1000, cl=cl, FUN=tdsimq)
-stopCluster(cl) ; rm(cl)
-
-tdsim <- l2array(tdsimL)
-save(tdsimt,tdsimn,tdsimp,tdsimr,tdsimq,tdsim,xys, file="dataprods/tdsim.Rdata") 
-
-
-source("Code_aid.R"); aid$load("tdsim", "tdpar")
-tdsimA <- apply(tdsim, 1:3, quantileMean, probs=c(0.3,0.5,0.7), na.rm=TRUE)
-
-
-pdf("fig/fig8.pdf", height=4, pointsize=11) 
-layout(matrix(c(1:3, rep(4,3)), ncol=2), width=c(4,6))
-par(mar=c(0,3,0,0.3), oma=c(3.5,0,0.1,0), mgp=c(2.1, 0.8,0), las=1, lend=1, cex=1)
-# plot temperature dependent parameters:
-leg <- function(i) {abline(lm(y~x, data=xys[[i]]), col=2) 
-     legend("topleft", legend=dimnames(tdpar)[[1]][i], inset=c(-0.0, -0.0), bty="n")}
-plot(xys[[1]], ann=FALSE, axes=F); axis(2,at=seq(0.5,1,0.5)) ; leg(1); box()
-plot(xys[[2]], ann=FALSE, axes=F); axis(2,at=seq(0.5,1.5,0.5)) ; leg(2); box()
-plot(xys[[3]], ann=FALSE, axes=F); axis(2,at=seq(1,3,1)) ; leg(3); box()
-axis(1)
-rm(leg)
-title(xlab="Dewpoint temperature bin midpoint  [\U{00B0}C]", outer=TRUE)
-##
-par(mar=c(0,3.5,0,0.3))
-plot(1, type="n", xlim=c(5,20), ylim=c(8,200), log="y", xlab="", yaxt="n",
-     ylab="Weibull random sample 99.9% quantile  [mm/h]")
-logAxis(2)
-ciBand(yu=10^tdsimA["70%","quantileMean","99.9%",], nastars=FALSE,
-       ym=10^tdsimA["50%","quantileMean","99.9%",],
-       yl=10^tdsimA["30%","quantileMean","99.9%",], x=tdsimt, colm="green3", add=TRUE)
-ciBand(yu=10^tdsimA["70%","weightedc","99.9%",], nastars=FALSE,
-       ym=10^tdsimA["50%","weightedc","99.9%",],
-       yl=10^tdsimA["30%","weightedc","99.9%",], x=tdsimt, colm="blue", add=TRUE)
-aid$cc_lines(NA)
-tplot <- seq(5,21,1)
-lines(tplot, sapply(tplot, function(t) 10^lmomco::quawei(f=0.999, tdsimp(t))), lty=3, col=2)
-legend("topleft", c("CC-scaling", "Real value from parameters in the left panel", 
-                    "Weighted average of 12 distribution functions", 
-                    "Empirical quantile", "Central 40% of 1000 simulations"),
-       lwd=c(1,1,2,2,11), lty=c(1,3,1,1), col=c(1,2,"blue","green3",8), bg="white", cex=0.8)
-text(20, c(1.25, 1.45), c("empirical","parametric") )
-dev.off()
-
-
-
-# 2.6. Sample size bias lin vs log ---------------------------------------------
-
-source("Code_aid.R"); aid$load("PREC")
-# lower n-dependency if log10(randomsample) is used for fitting:
-log_n <- c(25:100,seq(150,550, by=50))
-log_qn <- function(simnr) berryFunctions::tryStack( vapply(log_n, function(nn){
-    set.seed(simnr); ransam <- sample(PREC,nn)
-    lin <- extremeStat::distLquantile(ransam, sel=c("wak","gpa"), probs=aid$probs, 
-    truncate=0.8, weighted=FALSE, gpd=FALSE, order=FALSE, quiet=TRUE)
-    log <- extremeStat::distLquantile(log10(ransam), sel=c("wak","gpa"), probs=aid$probs, 
-    truncate=0.8, weighted=FALSE, gpd=FALSE, order=FALSE, quiet=TRUE)
-    rownames(log) <- paste0("log_",rownames(log))
-    rbind(lin[1:3,1:4],log[1:3,1:4]) }, FUN.VALUE=array(0, dim=c(6,4)) ), silent=TRUE)
-
-# 80? runs per minute on 4 cores, 100 on 8:
-library(parallel)
-cl <- makeCluster( detectCores()-1 )
-clusterExport(cl, c("PREC", "log_qn", "aid", "log_n"))
-log_QN <- pblapply(X=1:1000, cl=cl, FUN=log_qn)
-save(log_n, log_QN, file="dataprods/log_QN.Rdata")
-stopCluster(cl) ; rm(cl)
-rm(log_qn)
-
-source("Code_aid.R"); aid$load("log_QN", "PREC")
-log_QNA <- l2array( log_QN[sapply(log_QN, class)=="array"] )
-log_QNAg <- pbapply(log_QNA, MARGIN=1:3, quantileMean, probs=c(seq(0,1,0.1),0.25,0.75), na.rm=TRUE)
-
-log_plot <- function(d, fun=I, qn="99.9%", ...) 
-  ciBand(yl=fun(log_QNAg["30%",d,qn,]), xlab="Sample size",
-         ym=fun(log_QNAg["50%",d,qn,]), yaxt="n", 
-         yu=fun(log_QNAg["70%",d,qn,]), x=log_n, ...)
-
-pdf("fig/loglin_samplesizedependency.pdf", height=5)
-for(qi in 1:4){
-qn <- c("90%","99%","99.9%","99.99%")[qi]
-qq <- aid$probs[qi]
-ylim <- c(c(0.2,0.7,0.7,0.7)[qi], c(1,1,1.8,1.8)[qi])
-par(mfrow=c(1,2), mar=c(3,3,2,0.4), mgp=c(1.9,0.6,0), lend=1, las=1)
-log_plot("quantileMean", fun=log10, qn=qn, ylab="log( distLquantile(sample) )", 
-         main="linear", ylim=ylim)
-log_plot("wak", fun=log10, qn=qn, colm="blue", add=TRUE)
-log_plot("gpa", fun=log10, qn=qn, colm="orange", add=TRUE)
-logAxis(2)
-abline(h=log10(quantileMean(PREC,qq)), lty=3)
-cols <- c("blue","orange","green3"); names <- c("Wakeby","GPD","Empirical")
-legend("topright", names, col=addAlpha(cols), lwd=7, bg="white", text.col="white")
-legend("topright", names, col=cols, lwd=2, bty="n")
-log_plot("log_quantileMean", ylab="distLquantile( log(sample) )", 
-         main="logarithmic", ylim=ylim, qn=qn)
-log_plot("log_wak", qn=qn, colm="blue", add=TRUE)
-log_plot("log_gpa", qn=qn, colm="orange", add=TRUE)
-logAxis(2)
-abline(h=quantileMean(log10(PREC),qq), lty=3)
-title(main=qn, outer=TRUE, line=-1.2)
-}
-#
-par(mar=c(3,3,3,0.4))
-hist(pbreplicate(5000,10^quantileMean(log10(sample(PREC,500)),0.9999)), breaks=50, 
-     xlab="mm/h", main="quantile(log10(sample(\nPREC,500)),0.9999))", 
-     col="lightsteelblue", border="NA", xlim=lim0(60), freq=FALSE)
-abline(v=10^quantileMean(log10(PREC),0.9999), lty=3)
-hist(pbreplicate(5000,10^quantileMean(log10(sample(PREC,5000)),0.9999)), breaks=50,
-     xlab="mm/h", main="quantile(log10(sample(\nPREC,5000)),0.9999))", 
-     col="lightsteelblue", border="NA", xlim=lim0(60), freq=FALSE)
-abline(v=10^quantileMean(log10(PREC),0.9999), lty=3)
-rm(cols,names,qq,qn,qi,ylim)
-dev.off()
-
-
 
 
 
 # 3. Hourly Prec-Temp relationship ---------------------------------------------
 
-# 3.1. Raw data visualisation --------------------------------------------------
-
-source("Code_aid.R"); aid$load("meta", "PT")
-library("mapdata") ;  map <- maps::map('worldHires','Germany') ;  dev.off()
-
-range(sapply(PT, function(x)   max(x$prec, na.rm=T))) # 21.5 80.8
-range(sapply(PT, function(x) range(x$temp, na.rm=T))) # -16.4  34.6
-range(sapply(PT, function(x) range(x$temp5,na.rm=T))) # -21.3  29.8
-hist(sapply(PT, nrow), breaks=30, col="salmon")
-
-PT5 <- pblapply(1:142, function(i){
-  x <- PT[[i]]
-  data.frame(x=x$temp5[x$prec>2], y=x$prec[x$prec>2])
-  })
-
-# Plot PT-graph with 5 hour preceding dewpoint temp: 
-pdf("fig/RawData_T5.pdf", height=5)
-dummy <- pblapply(1:142, function(i){  # order(meta$ele), ...
-  aid$stationplot(i, meta, map, ylim=c(2.5,70) )
-  points(PT5[[i]], pch=16, col=addAlpha(1))
-  text(-3,50, 50)
-  })
-dev.off()
-
-PT5df <- do.call(rbind, PT5)
-PT5df$y <- log10(PT5df$y)
-
-pdf("fig/RawData_T5_all.pdf", height=5)
-dummy <- pblapply(20:200, function(n){
-gplots::hist2d(PT5df, col=seqPal(n), nbins=n, yaxt="n", xlim=c(-5.1,24),
-xlab="Dew point temperature (mean of preceding 5 hours)  [ \U{00B0}C]",
-ylab="Precipitation  [mm/h]", main=n)#"All stations")
-logAxis(2)
-})
-dev.off()
-
-rm(dummy, map)
 
 
 # 3.2. PT-quantiles computation ------------------------------------------------
@@ -1013,49 +522,11 @@ statav[apply(stats,1,function(x) sum(!is.na(x))<50)] <- NA
 statav
 }
 
-pdf("fig/PTQ.pdf", height=5)
-# _a. empirical and parametric quantiles in one plot ----------------------------
-par(mar=c(4,4,2,0.5), mgp=c(2.5,0.6,0))
-dn <- c("quantileMean", "weightedc")
-dc <- addAlpha(c("red", "blue"))
-for(prob in c("90%", "99%", "99.9%", "99.99%"))
-{
-aid$PTplot(prob=prob)
-for(s in 1:142) for(d in 1:2) lines(aid$mid, 10^PTQ[dn[d], prob, ,s], col=dc[d])
-}
-# _b. Qemp/par side by side -----------------------------------------------------
-par(mfrow=c(1,2), mar=c(2,2,1.5,0.5), oma=c(1.5,1.5,1.5,0) )
-for(prob in c("90%", "99%", "99.9%", "99.99%"))
-{
-for(d in 1:2)
-{
-aid$PTplot(prob=prob, outer=TRUE, line=0)
-title(main=dn[d])
-statav <- PTQlines(prob=prob, dn=dn[d], col=dc[d])
-lines(aid$mid, 10^statav, lwd=2)  
-}}
-#
-# _c. PTQ for each distribution function ----------------------------------------
-par(mfrow=c(1,1), mar=c(4,4,2,0.5), oma=c(0,0,0,0) )
-dummy <- pblapply(dimnames(PTQ)[[1]], function(dn){ 
-ylim <- c(5,130)
-cut <- 150
-if(dn=="n_full")    {ylim <- c(5,2000); cut <- 1e5}
-if(dn=="n")         {ylim <- c(1, 400); cut <- 1e5}
-if(dn=="threshold") {ylim <- c(0.1,1.5); cut <- 1e5}
-aid$PTplot(prob="99.9%", ylim=ylim, main=dn, cc=!dn %in% c("n_full","n","threshold"))
-statav <- PTQlines(prob="99.9%", dn=dn, cut=cut)
-if(dn%in%c("n_full","n","threshold")) lines(aid$mid,    statav, lwd=2, col="red") else
-                                      lines(aid$mid, 10^statav, lwd=2, col="red") 
-if(dn=="n_full") abline(h=25, lwd=2, col="red")
-if(dn=="n") abline(h=5, lwd=2, col="red")
-})
-rm(dummy, prob, d, dn, s, dc, statav)
-dev.off()
 
 
 
-pdf("fig/fig2.pdf", height=5)
+
+pdf("fig/fig3.pdf", height=5)
 par(mfrow=c(1,2), mar=c(2,2,0.5,0.5), oma=c(1.5,1.5,0,0) )
 aid$PTplot(prob="99.9%", outer=TRUE, line=0, ylim=c(4,120), main="")
 statav_e <- PTQlines(prob="99.9%", dn="quantileMean", col="green3")
@@ -1072,31 +543,6 @@ aid$cc_lines(NA, mainargs=list(col=2))
 dev.off()
 
 
-# PTQ aggregate across distributions
-source("Code_aid.R"); aid$load("PTQ")
-
-dn <- dimnames(PTQ)[[1]][1:33]
-dc <- rep("grey", length(dn)); names(dc) <- dn
-dc[grepl("GPD_",dn)] <- addAlpha("red")
-dc[dn=="quantileMean"] <- "blue"
-statavs <- pblapply(dn, function(d)
-{
-  stats <- PTQ[d,"99.9%",,]
-  stats <- replace(stats, stats>10, NA)
-  statav <- rowMeans(stats, na.rm=TRUE)
-  statav[apply(stats,1,function(x) sum(!is.na(x))<50)] <- NA
-  statav
-})
-names(statavs) <- dn
-
-pdf("fig/statavs.pdf", height=5)
-par(mfrow=c(1,1), mar=c(2,2,0.5,0.5), oma=c(1.5,1.5,0,0) )
-aid$PTplot(prob="99.9%", outer=TRUE, line=0, ylim=c(4,120), main="", cc=FALSE)
-for(d in dn) lines(as.numeric(names(statavs[[d]])), 10^statavs[[d]], col=dc[d])
-aid$cc_lines(NA)
-legend("bottomright", c("17 lmomco dists", "11 GPD fits", "empirical", "CC scaling"),
-       col=c("grey","red","blue","black"), lty=1, bg="white")
-dev.off()
 
 
 
@@ -1117,4 +563,106 @@ dummy <- pblapply(1:142, function(i){
   })
 rm(dn, dc, dummy)
 dev.off()
+
+
+
+
+
+
+# 4. tempdep distribution ----------------------------------------------------
+source("Code_aid.R"); aid$load("PT"); library(lmomco)
+
+tdtemp <- seq(4,16,by=2) # 2 min
+tdpar <- pblapply(tdtemp, FUN=function(t) sapply(PT, function(x) # 8 x 20 secs
+  {
+  x <- x$prec[ x$temp5>(t-1) & x$temp5<=(t+1)]
+  lmomco::parwei(lmom=lmomco::lmoms(log10(x)))$para
+  }))
+
+tdpar <- l2array(tdpar)
+names(dimnames(tdpar)) <- c("par","stat","temp") ; dimnames(tdpar)[[3]] <- tdtemp
+str(tdpar)
+save(tdpar,tdtemp, file="dataprods/tdpar.Rdata") 
+
+
+source("Code_aid.R"); aid$load("PT","tdpar"); library(lmomco); library(parallel)
+xys <- lapply(1:3, function(param)
+  {
+  xy <- function(t,p) cbind(x=rep(tdtemp[t],142), y=tdpar[p,,t])
+  xy <- do.call(rbind, lapply(seq_along(tdtemp), xy, p=param))
+  xy <- as.data.frame(xy, check.names=FALSE)
+  xy
+  })
+
+# temp-dep simulation: temperature, sample size n, parameters, random numbers, quantiles
+tdsimt <- 5:20
+tdsimn <- pbsapply(tdsimt, function(t) sapply(PT, function(x) sum(x$temp5>(t-1) & x$temp5<=(t+1))))
+tdsimn <- colMeans(tdsimn)
+tdsimp <- function(t) list(type="wei", para=c(
+   zeta=unname(predict(lm(y~x, data=xys[[1]]),newdata=data.frame(x=t))),
+   beta=unname(predict(lm(y~x, data=xys[[2]]),newdata=data.frame(x=t))),
+  delta=unname(predict(lm(y~x, data=xys[[3]]),newdata=data.frame(x=t)))
+  ), source="parwei")
+tdsimr <- function() lapply(seq_along(tdsimt), function(i) lmomco::rlmomco(
+  n=tdsimn[i], para=tdsimp(tdsimt[i]) ))
+
+aid$load("weights"); rm(BGE,weights_all,weights_dn)
+library(extremeStat)
+tdsimq <- function(seed) 
+  {
+  set.seed(seed)
+  out <- lapply(tdsimr(), extremeStat::distLquantile, truncate=0.8, gpd=FALSE, order=FALSE, 
+         probs=aid$probs, weightc=weights, quiet=TRUE)
+  out <- berryFunctions::l2array(out)
+  names(dimnames(out)) <- c("distr","prob","temp") ; dimnames(out)[[3]] <- tdsimt
+  out
+  }
+
+cl <- makeCluster( detectCores()-1 ) # 1000 runs 20 min on 3 cores
+clusterExport(cl, c(paste0("tdsim",c("t","n","p","r","q")), "weights","xys","aid")) 
+tdsimL <- pblapply(1:1000, cl=cl, FUN=tdsimq)
+stopCluster(cl) ; rm(cl)
+
+tdsim <- l2array(tdsimL)
+save(tdsimt,tdsimn,tdsimp,tdsimr,tdsimq,tdsim,xys, file="dataprods/tdsim.Rdata") 
+
+
+source("Code_aid.R"); aid$load("tdsim", "tdpar")
+tdsimA <- apply(tdsim, 1:3, quantileMean, probs=c(0.3,0.5,0.7), na.rm=TRUE)
+
+
+pdf("fig/fig4.pdf", height=4, pointsize=11) 
+layout(matrix(c(1:3, rep(4,3)), ncol=2), width=c(4,6))
+par(mar=c(0,3,0,0.3), oma=c(3.5,0,0.1,0), mgp=c(2.1, 0.8,0), las=1, lend=1, cex=1)
+# plot temperature dependent parameters:
+leg <- function(i) {abline(lm(y~x, data=xys[[i]]), col=2) 
+     legend("topleft", legend=dimnames(tdpar)[[1]][i], inset=c(-0.0, -0.0), bty="n")}
+plot(xys[[1]], ann=FALSE, axes=F); axis(2,at=seq(0.5,1,0.5)) ; leg(1); box()
+plot(xys[[2]], ann=FALSE, axes=F); axis(2,at=seq(0.5,1.5,0.5)) ; leg(2); box()
+plot(xys[[3]], ann=FALSE, axes=F); axis(2,at=seq(1,3,1)) ; leg(3); box()
+axis(1)
+rm(leg)
+title(xlab="Dewpoint temperature bin midpoint  [\U{00B0}C]", outer=TRUE)
+##
+par(mar=c(0,3.5,0,0.3))
+plot(1, type="n", xlim=c(5,20), ylim=c(8,200), log="y", xlab="", yaxt="n",
+     ylab="Weibull random sample 99.9% quantile  [mm/h]")
+logAxis(2)
+ciBand(yu=10^tdsimA["70%","quantileMean","99.9%",], nastars=FALSE,
+       ym=10^tdsimA["50%","quantileMean","99.9%",],
+       yl=10^tdsimA["30%","quantileMean","99.9%",], x=tdsimt, colm="green3", add=TRUE)
+ciBand(yu=10^tdsimA["70%","weightedc","99.9%",], nastars=FALSE,
+       ym=10^tdsimA["50%","weightedc","99.9%",],
+       yl=10^tdsimA["30%","weightedc","99.9%",], x=tdsimt, colm="blue", add=TRUE)
+aid$cc_lines(NA)
+tplot <- seq(5,21,1)
+lines(tplot, sapply(tplot, function(t) 10^lmomco::quawei(f=0.999, tdsimp(t))), lty=3, col=2)
+legend("topleft", c("CC-scaling", "Real value from parameters in the left panel", 
+                    "Weighted average of 12 distribution functions", 
+                    "Empirical quantile", "Central 40% of 1000 simulations"),
+       lwd=c(1,1,2,2,11), lty=c(1,3,1,1), col=c(1,2,"blue","green3",8), bg="white", cex=0.8)
+text(20, c(1.25, 1.45), c("empirical","parametric") )
+dev.off()
+
+
 
