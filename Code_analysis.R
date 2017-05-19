@@ -444,21 +444,20 @@ dev.off()
 # ......... ----
 # 3. Hourly Prec-Temp relationship ---------------------------------------------
 
-# 3.2. PT-quantiles computation ------------------------------------------------
-source("Code_aid.R"); aid$load("PT","weights"); rm(BGE,weights_all,weights_dn)
-library(extremeStat)
+# 3.1. PT-quantiles computation ------------------------------------------------
+source("Code_aid.R"); aid$load("PT"); library(extremeStat)
 
-# long computing time (1 minute per station, 47 min on 3 cores)
+# long computing time (30 seconds per station, 10 min on 7 cores)
 library(parallel) # for parallel lapply execution
 cl <- makeCluster( detectCores()-1 )
-clusterExport(cl, c("PT","aid", "weights"))
+clusterExport(cl, c("PT","aid"))
 PTQL <- pblapply(X=1:142, cl=cl, FUN=function(i){
   x <- PT[[i]]   #  x <- PT[[3]]; t=19.5
   # Quantile estimates per temperature bin
   binQ <- lapply(aid$mid, function(t) {
     seldat <- x$prec[ x$temp5>(t-1) & x$temp5<=(t+1)]
-    extremeStat::distLquantile(log10(seldat), probs=aid$probs, truncate=0.8, weightc=weights, 
-                  order=FALSE, ssquiet=TRUE, time=FALSE, progbars=FALSE)
+    extremeStat::distLquantile(log10(seldat), probs=aid$probs, truncate=0.8,  
+                               sel="gpa", order=FALSE, quiet=TRUE, weighted=FALSE)
     })
   binQ2 <- berryFunctions::l2array(binQ)
   names(dimnames(binQ2)) <- c("distr","prob","temp") ; dimnames(binQ2)[[3]] <- aid$mid
@@ -481,7 +480,7 @@ all(n113 == PTQ["n_full",1,,113], na.rm=TRUE)
 rm(n113)
 
 
-# 3.3. PT-quantiles visualization ----------------------------------------------
+# 3.2. PT-quantiles visualization ----------------------------------------------
 source("Code_aid.R"); aid$load("PTQ")
 
 PTQlines <- function(
@@ -507,47 +506,52 @@ statav
 }
 
 
-
-
-
 pdf("fig/fig3.pdf", height=5)
 par(mfrow=c(1,2), mar=c(2,2,0.5,0.5), oma=c(1.5,1.5,0,0) )
+for(alpha in 0.15)# 1:6/20)
+{
 aid$PTplot(prob="99.9%", outer=TRUE, line=0, ylim=c(4,120), main="")
-statav_e <- PTQlines(prob="99.9%", dn="quantileMean", col="green3")
+statav_e <- PTQlines(prob="99.9%", dn="empirical", col=addAlpha("green3", alpha))
 lines(aid$mid, 10^statav_e, lwd=2)  
 aid$cc_lines(NA, mainargs=list(col=2))
 legend("topleft", "Empirical", bty="n")
 #
 aid$PTplot(prob="99.9%", outer=TRUE, line=5, ylim=c(4,120), main="")
-statav <- PTQlines(prob="99.9%", dn="weightedc", col="blue")
+statav <- PTQlines(prob="99.9%", dn="gpa", col=addAlpha("blue", alpha))
 lines(aid$mid, 10^statav, lwd=2) 
 lines(aid$mid, 10^statav_e, col=8) 
 legend("topleft", "Parametric", bty="n")
 aid$cc_lines(NA, mainargs=list(col=2))
+#title(main=alpha, line=-3, outer=T)
+}
+rm(alpha)
 dev.off()
 
 
-
-
-
-# 3.4. PTQ per station ---------------------------------------------------------
+# 3.3. PTQ per station ---------------------------------------------------------
 
 source("Code_aid.R"); aid$load("PTQ", "PT", "meta")
 library("mapdata") ;  map <- maps::map('worldHires','Germany') ;  dev.off()
 
-dn <- c("quantileMean","weighted2","gpa", "wak")
-dc <- c("brown1", "deepskyblue4", "darkolivegreen4", "peru")
-
+dn <- c("empirical","gpa")
+dc <- c("green3", "blue")
 pdf("fig/PTQ_stats.pdf", height=5)
-dummy <- pblapply(1:142, function(i){
+dummy <- pblapply(order(meta$ele), function(i){
   aid$stationplot(i, meta, map, xlim=c(4.8,21), ylim=c(5,130) )
   legend("topleft", rev(dn), col=rev(dc), lwd=2, inset=c(0.064,0), bg="white")
-  points(PT[[i]][PT[[i]]$prec>5,c("temp5","prec")], pch=16, col=addAlpha(1))
-  for(d in 1:4) lines(aid$mid, PTQ[[i]][dn[d], "99.9%", ], col=dc[d], lwd=2)
+  points(PT[[i]][PT[[i]]$prec>4,c("temp5","prec")], pch=16, col=addAlpha(1))
+  for(d in 1:2) lines(aid$mid, 10^PTQ[dn[d], "99.9%", , i], col=dc[d], lwd=2)
   })
-rm(dn, dc, dummy)
+rm(d, dn, dc, dummy)
 dev.off()
 
+
+
+
+# 3.4. outlier station ----
+
+plot(10^PTQ["gpa","99.9%","11",])
+which.max(PTQ["gpa","99.9%","11",]) # IDberry 37, IDdwd 1346 Feldberg/Schwarzwald
 
 
 
