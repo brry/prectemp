@@ -558,14 +558,19 @@ which.max(PTQ["gpa","99.9%","11",]) # IDberry 37, IDdwd 1346 Feldberg/Schwarzwal
 
 # ......... ----
 # 4. tempdep distribution ----------------------------------------------------
-source("Code_aid.R"); aid$load("PT"); library(lmomco)
+# 4.1. Parameter ----
+source("Code_aid.R"); aid$load("PT"); library(lmomco); library(parallel) 
 
-tdtemp <- seq(4,16,by=2) # 2 min
-tdpar <- pblapply(tdtemp, FUN=function(t) sapply(PT, function(x) # 8 x 20 secs
+cl <- makeCluster( detectCores()-1 ) ; clusterExport(cl, "PT")
+
+tdtemp <- seq(4,16,by=2) # 25 secs
+tdpar <- pblapply(tdtemp, cl=cl, FUN=function(t) sapply(PT, function(x) # 7 x 20 secs
   {
   x <- x$prec[ x$temp5>(t-1) & x$temp5<=(t+1)]
-  lmomco::parwei(lmom=lmomco::lmoms(log10(x)))$para
+  lmomco::pargpa(lmom=lmomco::lmoms(log10(x)))$para
   }))
+stopCluster(cl); rm(cl)
+
 
 tdpar <- l2array(tdpar)
 names(dimnames(tdpar)) <- c("par","stat","temp") ; dimnames(tdpar)[[3]] <- tdtemp
@@ -573,41 +578,44 @@ str(tdpar)
 save(tdpar,tdtemp, file="dataprods/tdpar.Rdata") 
 
 
+# 4.2. Computation ----
 source("Code_aid.R"); aid$load("PT","tdpar"); library(lmomco); library(parallel)
 xys <- lapply(1:3, function(param)
   {
   xy <- function(t,p) cbind(x=rep(tdtemp[t],142), y=tdpar[p,,t])
   xy <- do.call(rbind, lapply(seq_along(tdtemp), xy, p=param))
   xy <- as.data.frame(xy, check.names=FALSE)
+  xy$station <- rownames(xy)
+  rownames(xy) <- NULL
   xy
   })
 
 # temp-dep simulation: temperature, sample size n, parameters, random numbers, quantiles
 tdsimt <- 5:20
-tdsimn <- pbsapply(tdsimt, function(t) sapply(PT, function(x) sum(x$temp5>(t-1) & x$temp5<=(t+1))))
+tdsimn <- pbsapply(tdsimt, function(t) sapply(PT, function(x) 
+                                           sum(x$temp5>(t-1) & x$temp5<=(t+1))))
 tdsimn <- colMeans(tdsimn)
-tdsimp <- function(t) list(type="wei", para=c(
+tdsimp <- function(t) list(type="gpa", para=c(
    zeta=unname(predict(lm(y~x, data=xys[[1]]),newdata=data.frame(x=t))),
    beta=unname(predict(lm(y~x, data=xys[[2]]),newdata=data.frame(x=t))),
   delta=unname(predict(lm(y~x, data=xys[[3]]),newdata=data.frame(x=t)))
-  ), source="parwei")
+  ), source="pargpa")
 tdsimr <- function() lapply(seq_along(tdsimt), function(i) lmomco::rlmomco(
   n=tdsimn[i], para=tdsimp(tdsimt[i]) ))
 
-aid$load("weights"); rm(BGE,weights_all,weights_dn)
 library(extremeStat)
 tdsimq <- function(seed) 
   {
   set.seed(seed)
-  out <- lapply(tdsimr(), extremeStat::distLquantile, truncate=0.8, gpd=FALSE, order=FALSE, 
-         probs=aid$probs, weightc=weights, quiet=TRUE)
+  out <- lapply(tdsimr(), extremeStat::distLquantile, truncate=0.8, gpd=FALSE, 
+                order=FALSE, sel="gpa", weighted=FALSE, probs=aid$probs, quiet=TRUE)
   out <- berryFunctions::l2array(out)
   names(dimnames(out)) <- c("distr","prob","temp") ; dimnames(out)[[3]] <- tdsimt
   out
   }
 
-cl <- makeCluster( detectCores()-1 ) # 1000 runs 20 min on 3 cores
-clusterExport(cl, c(paste0("tdsim",c("t","n","p","r","q")), "weights","xys","aid")) 
+cl <- makeCluster( detectCores()-1 ) # 1000 runs 2 min on 7 cores
+clusterExport(cl, c(paste0("tdsim",c("t","n","p","r","q")), "xys","aid")) 
 tdsimL <- pblapply(1:1000, cl=cl, FUN=tdsimq)
 stopCluster(cl) ; rm(cl)
 
@@ -615,9 +623,11 @@ tdsim <- l2array(tdsimL)
 save(tdsimt,tdsimn,tdsimp,tdsimr,tdsimq,tdsim,xys, file="dataprods/tdsim.Rdata") 
 
 
+# 4.3. Visualisation ----
 source("Code_aid.R"); aid$load("tdsim", "tdpar")
 tdsimA <- apply(tdsim, 1:3, quantileMean, probs=c(0.3,0.5,0.7), na.rm=TRUE)
-
+tdsimA <- tdsimA[,,,1:15]
+tdsimt <- tdsimt[1:15]
 
 pdf("fig/fig4.pdf", height=4, pointsize=11) 
 layout(matrix(c(1:3, rep(4,3)), ncol=2), width=c(4,6))
@@ -625,28 +635,28 @@ par(mar=c(0,3,0,0.3), oma=c(3.5,0,0.1,0), mgp=c(2.1, 0.8,0), las=1, lend=1, cex=
 # plot temperature dependent parameters:
 leg <- function(i) {abline(lm(y~x, data=xys[[i]]), col=2) 
      legend("topleft", legend=dimnames(tdpar)[[1]][i], inset=c(-0.0, -0.0), bty="n")}
-plot(xys[[1]], ann=FALSE, axes=F); axis(2,at=seq(0.5,1,0.5)) ; leg(1); box()
-plot(xys[[2]], ann=FALSE, axes=F); axis(2,at=seq(0.5,1.5,0.5)) ; leg(2); box()
-plot(xys[[3]], ann=FALSE, axes=F); axis(2,at=seq(1,3,1)) ; leg(3); box()
+plot(xys[[1]][,1:2], ann=FALSE, axes=F); axis(2,at=seq(0.5,1,0.5)) ; leg(1); box()
+plot(xys[[2]][,1:2], ann=FALSE, axes=F); axis(2,at=seq(0.5,1.5,0.5)) ; leg(2); box()
+plot(xys[[3]][,1:2], ann=FALSE, axes=F); axis(2,at=seq(1,3,1)) ; leg(3); box()
 axis(1)
 rm(leg)
 title(xlab="Dewpoint temperature bin midpoint  [\U{00B0}C]", outer=TRUE)
 ##
 par(mar=c(0,3.5,0,0.3))
-plot(1, type="n", xlim=c(5,20), ylim=c(8,200), log="y", xlab="", yaxt="n",
-     ylab="Weibull random sample 99.9% quantile  [mm/h]")
+plot(1, type="n", xlim=c(5,20), ylim=c(4,100), log="y", xlab="", yaxt="n",
+     ylab="GPD random sample 99.9% quantile  [mm/h]")
 logAxis(2)
-ciBand(yu=10^tdsimA["70%","quantileMean","99.9%",], nastars=FALSE,
-       ym=10^tdsimA["50%","quantileMean","99.9%",],
-       yl=10^tdsimA["30%","quantileMean","99.9%",], x=tdsimt, colm="green3", add=TRUE)
-ciBand(yu=10^tdsimA["70%","weightedc","99.9%",], nastars=FALSE,
-       ym=10^tdsimA["50%","weightedc","99.9%",],
-       yl=10^tdsimA["30%","weightedc","99.9%",], x=tdsimt, colm="blue", add=TRUE)
+ciBand(yu=10^tdsimA["70%","empirical","99.9%",], nastars=FALSE,
+       ym=10^tdsimA["50%","empirical","99.9%",],
+       yl=10^tdsimA["30%","empirical","99.9%",], x=tdsimt, colm="green3", add=TRUE)
+ciBand(yu=10^tdsimA["70%","gpa","99.9%",], nastars=FALSE,
+       ym=10^tdsimA["50%","gpa","99.9%",],
+       yl=10^tdsimA["30%","gpa","99.9%",], x=tdsimt, colm="blue", add=TRUE)
 aid$cc_lines(NA)
 tplot <- seq(5,21,1)
-lines(tplot, sapply(tplot, function(t) 10^lmomco::quawei(f=0.999, tdsimp(t))), lty=3, col=2)
+lines(tplot, sapply(tplot, function(t) 10^lmomco::quagpa(f=0.999, tdsimp(t))), lty=3, col=2)
 legend("topleft", c("CC-scaling", "Real value from parameters in the left panel", 
-                    "Weighted average of 12 distribution functions", 
+                    "Parametric quantile", 
                     "Empirical quantile", "Central 40% of 1000 simulations"),
        lwd=c(1,1,2,2,11), lty=c(1,3,1,1), col=c(1,2,"blue","green3",8), bg="white", cex=0.8)
 text(20, c(1.25, 1.45), c("empirical","parametric") )
