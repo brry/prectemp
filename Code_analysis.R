@@ -53,6 +53,7 @@ library(berryFunctions); library(pbapply) # potentially needed in every section
 
 
 
+# ......... ----
 # 1. Data ----------------------------------------------------------------------
 
 # 1.1. Select DWD stations -----------------------------------------------------
@@ -269,38 +270,41 @@ rm(dummy, map, PT5, PT5df)
 
 
 
+# ......... ----
 # 2. SSD: Sample size dependency -----------------------------------------------
 
-load("dataprods/PT.Rdata")
-# All 136k rainfall records between 10 and 12 degrees event dewpoint temperature 
-PREC <- unlist(lapply(PT, function(x) x[x$temp5>10 & x$temp5<12, "prec"] ))
-PREC <- unname(PREC)
-save(PREC, file="dataprods/PREC.Rdata")
+# 2.1. Select population -------------------------------------------------------
 
-hist(PREC, breaks=50, col="deepskyblue1")
-logHist(PREC)
-logHist(PREC, breaks=80)
-binprec <- function(temp, ...)
+load("dataprods/PT.Rdata")
+
+# select temperature bin for population for SSD experiments
+# - range where there is no CC drop yet
+# - distribution should be representative:
+pdf("fig/binprec.pdf", height=5)
+allprecs <- pblapply(seq(-11,23,0.2), function(temp)   # 15 secs
   {
   bin <- temp+c(-1,1)
   PREC <- unlist(lapply(PT, function(x) x[x$temp5>bin[1] & x$temp5<bin[2], "prec"] ))
   logHist(PREC, breaks=80, main=paste0("Histogramm of all hourly rainfall ",
           "records at 142 stations in ", formatC(round(temp,1), format="f", digits=1),
-          "\U{00B0}C bin"), xlab="Precipitation  [mm/h]", ...)
+          "\U{00B0}C bin"), xlab="Precipitation  [mm/h]", 
+          xlim=log10(c(0.5,80)), ylim=lim0(6), col="deepskyblue1", freq=FALSE)
   title(sub=format(length(PREC), big.mark="'"), adj=1)
   d <- density(log10(PREC))
   lines(d$x, d$y*4)
-  invisible(PREC)
-  }
-
-pdf("fig/binprec.pdf", height=5)
-allprecs <- pblapply(seq(-11,23,0.2), binprec, xlim=log10(c(0.5,80)), 
-                     ylim=lim0(6), col="deepskyblue1", freq=FALSE)
+  })
 dev.off()
 
+# All 136k rainfall records between 10 and 12 degrees event dewpoint temperature 
+PREC <- unlist(lapply(PT, function(x) x[x$temp5>10 & x$temp5<12, "prec"] ))
+PREC <- unname(PREC)
+hist(PREC, breaks=50, col="deepskyblue1")
+logHist(PREC)
+logHist(PREC, breaks=80)
+save(PREC, file="dataprods/PREC.Rdata")
 
 
-# 2.1. SSD computation ---------------------------------------------------------
+# 2.2. Distribution fit quality ------------------------------------------------
 
 source("Code_aid.R"); aid$load("PREC"); library(extremeStat)
 
@@ -323,8 +327,13 @@ points(quantile(log10(PREC),p), c(0.3,0.3), pch=16)
 text(quantile(log10(PREC), 0.999), 0.6, "99.9%", adj=0.8)
 text(quantile(log10(PREC), 0.9999), 0.6, "99.99%")
 dev.off()
-
+# looks like gpa will underestimate in this particular population
 rm(p,dlq,dlf)
+
+
+# 2.3. SSD computation ---------------------------------------------------------
+
+source("Code_aid.R"); aid$load("PREC"); library(extremeStat)
 
 ransample <- function(simn, trunc=0) # random sample generator
   {
@@ -334,52 +343,48 @@ ransample <- function(simn, trunc=0) # random sample generator
   out
   }
   
-# truncation of 80% decided in section 2.4.
+# truncation of 80% decided in previous paper version
 qn <- function(simn)
-  {
-  cat("\n------- sim run ", simn, " started ", as.character(Sys.time()), " -------\n", 
-      file=paste0("simlogs/",simn,".txt"), append=TRUE)
   berryFunctions::tryStack({
   # Object and file name (with simulation run number):
   obname <- paste0("QN",simn)
-  fname <- paste0("sim/QN",simn,".Rdata")
+  fname <- paste0("sim_ssd/QN",simn,".Rdata")
   if(file.exists(fname)) return()
   # Quantile estimation function:
   Qest <- function(x) 
-    extremeStat::distLquantile(x, probs=aid$probs, truncate=0.8, quiet=TRUE, order=FALSE)
+    extremeStat::distLquantile(x, probs=aid$probs, truncate=0.8, quiet=TRUE, 
+                               weighted=FALSE, sel="gpa", order=FALSE)
   # random samples
   rs <- ransample(simn)
   # Hardcore computation returning a 3D array:
-  QN <- vapply(rs, Qest, FUN.VALUE=array(0, dim=c(38,5)) )
+  QN <- vapply(rs, Qest, FUN.VALUE=array(0, dim=c(19,5)) )
   # Dimnames
   dimnames(QN)[3] <- list(paste(aid$n))
   names(dimnames(QN)) <- c("distr","prob", "n")
   # Saving to disc:
-  assign(obname, QN, envir=environment())
+  assign(x=obname, value=QN, envir=environment())
   save(list=obname, file=fname)
-  }, file=paste0("simlogs/",simn,".txt")  )# tryStack end
-  cat("\n------- sim run ", simn, " finish  ", as.character(Sys.time()), " -------\n", 
-      file=paste0("simlogs/",simn,".txt"), append=TRUE)
-  }
+  }, file=paste0("sim_ssd_logs/",simn,".txt")  )
 
-# long computing time (3 minutes per simulation run):
-# 400 in 2 hours on 7 cores
+
+# long computing time (1.5 minutes per simulation run): 500 in 1:36 hours on 7 cores
 library(parallel) # for parallel lapply execution
 cl <- makeCluster( detectCores()-1 )
-clusterExport(cl, c("aid", "PREC", "qn", "ransample"))#, "dweight"))
-dummy <- pblapply(X=1:2000, cl=cl, FUN=qn)
+clusterExport(cl, c("aid", "PREC", "qn", "ransample"))
+dummy <- pblapply(X=501:1000, cl=cl, FUN=qn)
 stopCluster(cl)
 rm(cl, dummy)
 rm(qn, ransample)
 
 
 
-# 2.2. SSD array + checks ------------------------------------------------------
+# 2.4. SSD array + checks ------------------------------------------------------
 
 # Read in simulation results + convert to array
 # (1.4 GB for 2000 simulations!)
 simEnv <- new.env()
-dummy <- pblapply(dir("sim", full=TRUE), load, envir=simEnv) # 6 secs / 1 min for 500 sims
+dummy <- pblapply(dir("sim_ssd", full=TRUE)[1:10], load, envir=simEnv)
+dummy <- pblapply(dir("sim_ssd", full=TRUE), load, envir=simEnv) # 6 secs / 1 min for 500 sims
 simQL <- as.list(mget(gtools::mixedsort(ls(envir=simEnv)), envir=simEnv))
 simQ <- l2array(simQL)
 names(dimnames(simQ))[4] <- "simnr"
@@ -389,76 +394,55 @@ rm(simEnv, dummy, simQL)
 str(simQ)
 dim(simQ)
 lapply(dimnames(simQ), head, 50)
-apply(simQ[1:35, "99.9%", as.character(40:45),], 1:2, min, na.rm=TRUE)
+apply(simQ[1:15, "99.9%", as.character(40:45),], 1:2, min, na.rm=TRUE)
+min(simQ[1:15,,,], na.rm=T)
 
-# too small values:
-which(10^simQ<0.5, arr.ind=TRUE) # one single PWM_evir
-simQ["GPD_PWM_evir",1,1,297] # with 10^-1.289 = 0.05
-
-# too large values
-which(simQ[1:35, 1, ,]>15, arr.ind=TRUE) 
-which(simQ["wak", 3, ,]>4, arr.ind=TRUE) 
-simQ[,,20,390]
-#dlq <- distLquantile(ransample(117)[[27]], tr=0.8, probs=aid$probs, list=TRUE)
-#plotLquantile(dlq)
-#dlq$quant
-#simQ[-c(27:32),,38,39]
-#which(simQ["wak", 3, 27,]<2 & simQ["wak", 3, 27,]>1.9, arr.ind=TRUE) 
-
-tl <- simQ[1:35, 1, ,]
-hist(tl[tl<2], breaks=50, col=3)
-rm(tl)
-sort(table(rownames(which(simQ[1:35, , ,1:500]>5, arr.ind=TRUE))))
-
-thres <- log10(c(1:10*100))
-toolarge <- pbsapply(thres, function(l) 
-                     apply(simQ[1:35, , ,1:300], 1, function(x) sum(x>l,na.rm=TRUE)) )
-colnames(toolarge) <- 10^thres
-colSums(toolarge) # at 300 sims: 151k values > 700
-plot(thres, colSums(toolarge), type="b", log="y", ylim=c(1,1e6), axes=FALSE)
-logAxis(2); axis(1)
-for(i in 1:35) lines(thres, replace(toolarge, toolarge==0, 1)[i,])
-rm(thres,i, toolarge)
-
+# Estimates that are obviously too large
 val <- logSpaced(min=50, max=10000, n=30, plot=F)
-numlarger <- pbsapply(val, function(x) sum(simQ[20:35, "99.9%",,]>log10(x), na.rm=T))
+numlarger <- pbsapply(val, function(x) sum(simQ[-(2:3), "99.9%",,]>log10(x), na.rm=T))
 plot(val, numlarger, log="yx", type="o", axes=F, main="Q99.9% GPD estimates larger than val")
 logAxis(1); logAxis(2)
 
-toolarge99 <- which(simQ[1:35,"99%", ,1:500]>log10(500), arr.ind=TRUE)
+toolarge99 <- which(simQ[-(2:3),"99%",,]>log10(500), arr.ind=TRUE)
 head(toolarge99)
 sort(table(rownames(toolarge99)))
 rm(toolarge99, numlarger, val)
 
+save(simQ, file="dataprods/simQ.Rdata")
 
 
-# 2.3. SSD visualitation -----
-source("Code_aid.R"); aid$load("simQA", "PREC", "weights")
+# SSD simulation aggregation:
+simQA <- pbapply(simQ, MARGIN=1:3, quantileMean, probs=c(0.3,0.5,0.7), na.rm=TRUE) # 1 min
+save(simQA, file="dataprods/simQA.Rdata")
+
+
+
+
+# 2.5. SSD visualitation -----
+source("Code_aid.R"); aid$load("simQA", "PREC")
 
 pdf("fig/fig2.pdf", height=3, width=3.5, pointsize=10)
 par(mar=c(3,3,0.2,0.2), mgp=c(1.8,0.7,0), las=1, lend=1)
 plot(1, type="n", xlim=c(25,830), ylim=log10(c(5,30)), xaxs="i", main="", yaxt="n",
        xlab="sample size n", ylab="")
 logAxis(2)
-for(d in c("quantileMean","weightedc"))
+for(d in c("empirical","gpa"))
   ciBand(yl=simQA["30%",d,"99.9%",], 
          ym=simQA["50%",d,"99.9%",],
-         yu=simQA["70%",d,"99.9%",], x=aid$n, colm=if(d=="weightedc") "blue" else "green3", add=TRUE)
+         yu=simQA["70%",d,"99.9%",], x=aid$n, colm=if(d=="gpa") "blue" else "green3", add=TRUE)
 abline(h=quantileMean(log10(PREC), probs=0.999), lty=3)
-legend("bottomright", c("Weighted distribution average",
-       "Empirical quantile", "Central 40% of simulations", "Quantile of full sample"),
+legend("bottomright", c("Parametric quantile",
+       "Empirical", "Central 40% of simulations", "Quantile of full sample"),
        lwd=c(2,2,11,1), lty=c(1,1,1,3), col=c("blue","green3",8,1), bg="white", cex=0.8)
-text(50, c(8, 15), c("empirical","parametric") )
+text(50, log10(c(8, 17)), c("empirical","parametric"), adj=0 )
 title(ylab="Random sample 99.9% quantile  [mm/h]       ")
 dev.off()
 
 
 
 
-
+# ......... ----
 # 3. Hourly Prec-Temp relationship ---------------------------------------------
-
-
 
 # 3.2. PT-quantiles computation ------------------------------------------------
 source("Code_aid.R"); aid$load("PT","weights"); rm(BGE,weights_all,weights_dn)
@@ -568,7 +552,7 @@ dev.off()
 
 
 
-
+# ......... ----
 # 4. tempdep distribution ----------------------------------------------------
 source("Code_aid.R"); aid$load("PT"); library(lmomco)
 
