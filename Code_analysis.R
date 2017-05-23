@@ -117,26 +117,6 @@ save(meta, file="dataprods/meta.Rdata")
 rm(T_dur, P_dur, m_dur, prec_id, temp_id, metaIndex)
 
 
-# CHECK: coordinates #   View(meta) # Map of stations
-load("dataprods/meta.Rdata")
-library(OSMscale)
-map <- pointsMap(lat,long, data=meta, zoom=6, type="maptoolkit-topo")
-meta <- cbind(meta, 
-              projectPoints(lat,long, data=meta, from=pll(), to=pmap(map)) )
-
-pdf("fig/stationsmap.pdf", width=5)
-par(mar=rep(0,4))
-plot(map, removeMargin=FALSE)
-rect(par("usr")[1], par("usr")[3], par("usr")[2],par("usr")[4], col=addAlpha("white",0.5), border=NA)
-#colPoints(x, y, m_dur, data=meta, zlab="Time series length  [Years]", 
-#          Range=c(14.9,20.04), legargs=list(mar=c(0.8,0.5,1,0.5), lines=F),
-#          density=FALSE, x1=0.5, y1=0.93, y2=1,x2=1, cex=2)
-colPoints(x, y, ele, data=meta, zlab="Station elevation  [m asl]", 
-          legargs=list(mar=c(0.8,0.5,1,0.5), lines=F), #col=terrain.colors(110)[1:100],
-          density=FALSE, x1=0.5, y1=0.93, y2=1,x2=1, cex=2)
-points(y~x, data=meta, cex=2)
-dev.off()
-
 
 # 1.3. Download data -----------------------------------------------------------
 
@@ -418,7 +398,7 @@ save(simQA, file="dataprods/simQA.Rdata")
 
 
 
-# 2.5. SSD visualitation -----
+# 2.5. SSD visualisation -----
 source("Code_aid.R"); aid$load("simQA", "PREC")
 
 pdf("fig/fig2.pdf", height=3, width=3.5, pointsize=10)
@@ -480,7 +460,7 @@ all(n113 == PTQ["n_full",1,,113], na.rm=TRUE)
 rm(n113)
 
 
-# 3.2. PT-quantiles visualization ----------------------------------------------
+# 3.2. PT-quantiles visualisation ----------------------------------------------
 source("Code_aid.R"); aid$load("PTQ")
 
 PTQlines <- function(
