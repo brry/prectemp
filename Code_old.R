@@ -3,6 +3,68 @@
 # Berry Boessenkool, 2016
 
 
+
+# gpa for random gamma values ----
+
+
+dlf <- distLfit(log10(PREC), sel="gam", truncate=0.9)
+dlf$parameter$gam #       alpha=11.2,  beta=0.05
+GAMPAR <- list(type="gam", para=c(alpha=11.2, beta=0.05))
+GAM <- 10^lmomco::rlmomco(1e4, GAMPAR)
+10^lmomco::qlmomco(0.999, GAMPAR) # 16.6
+
+dlf <- distLfit(log10(GAM), truncate=0.9)
+plotLfit(dlf)
+dlq <- distLquantile(dlf=dlf, probs=0.999, truncate=0.9, emp=F, list=T)
+plotLquantile(dlq)
+
+dlq80 <- distLquantile(log10(GAM), truncate=0.9, probs=0.999, weighted=F, gpd=F)
+dlq90 <- distLquantile(log10(GAM), truncate=0.9, probs=0.999, weighted=F, gpd=F)
+
+plot(10^dlq80[1:19,1], ylim=c(10,24)) ; points(19.5, 10^dlq80["gpa",1], pch=16)
+plot(10^dlq90[1:19,1], ylim=c(10,24)) ; points(19.5, 10^dlq90["gpa",1], pch=16)
+
+gamq <- pbsapply(aid$n, function(n)
+  distLquantile(lmomco::rlmomco(n, GAMPAR), probs=0.999,
+                truncate=0.9, sel="gpa", weight=F, gpd=F, quiet=T)[1:2,1])
+
+plot(aid$n, 10^gamq[2,], type="l", col="green3", log="y", yaxt="n")
+logAxis(2)
+lines(aid$n, 10^gamq[1,], col=addAlpha("blue"))
+abline(h=10^lmomco::qlmomco(0.999, GAMPAR), lty=3)
+
+
+
+# 2.1. Select population -------------------------------------------------------
+
+# select temperature bin for population for SSD experiments
+# - range where there is no CC drop yet
+# - distribution should be representative:
+pdf("fig/binprec.pdf", height=5)
+allprecs <- pblapply(seq(-11,23,0.2), function(temp)   # 15 secs
+  {
+  bin <- temp+c(-1,1)
+  PREC <- unlist(lapply(PT, function(x) x[x$temp5>bin[1] & x$temp5<bin[2], "prec"] ))
+  logHist(PREC, breaks=80, main=paste0("Histogramm of all hourly rainfall ",
+          "records at 142 stations in ", formatC(round(temp,1), format="f", digits=1),
+          "\U{00B0}C bin"), xlab="Precipitation  [mm/h]", 
+          xlim=log10(c(0.5,80)), ylim=lim0(6), col="deepskyblue1", freq=FALSE)
+  title(sub=format(length(PREC), big.mark="'"), adj=1)
+  d <- density(log10(PREC))
+  lines(d$x, d$y*4)
+  })
+dev.off()
+
+# All 136k rainfall records between 10 and 12 degrees event dewpoint temperature 
+PREC <- unlist(lapply(PT, function(x) x[x$temp5>10 & x$temp5<12, "prec"] ))
+PREC <- unname(PREC)
+hist(PREC, breaks=50, col="deepskyblue1")
+logHist(PREC)
+logHist(PREC, breaks=80)
+
+
+
+
 # add custom weighted quantile estimates:
 library(extremeStat)
 old <- simQ[,,100,1]

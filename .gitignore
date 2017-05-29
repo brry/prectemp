@@ -4,8 +4,12 @@
 DWDdata/
 oldStuff/
 dataprep/
+dataprods/old/
 fig/RawData_T5*
 sim_ssd/
 sim_ssd_logs/
+sim_ssd_PREC11/
+sim_ssd_PRECGPA/
 dataprods/simQ.Rdata
+Paper_V3/
 
