@@ -462,18 +462,20 @@ pdf("fig/fig3.pdf", height=5)
 par(mfrow=c(1,2), mar=c(2,2,0.5,0.5), oma=c(1.5,1.5,0,0) )
 for(alpha in 0.15)# 1:6/20)
 {
-aid$PTplot(prob="99.9%", outer=TRUE, line=0, xlim=c(4.8,20.3), ylim=c(4,120), main="")
+aid$PTplot(prob="99.9%", outer=TRUE, line=0, xlim=c(4.8,20.3), ylim=c(4,120), 
+           main="", cc=FALSE)
 statav_e <- PTQlines(prob="99.9%", dn="empirical", col=addAlpha("green3", alpha))
 lines(aid$mid, 10^statav_e, lwd=3)  
-aid$cc_lines(NA, mainargs=list(col=2))
+aid$cc_lines(NA, mainargs=list(col=2, lty=2))
 legend("topleft", "Empirical", bty="n")
 #
-aid$PTplot(prob="99.9%", outer=TRUE, line=5, xlim=c(4.8,20.3), ylim=c(4,120), main="")
+aid$PTplot(prob="99.9%", outer=TRUE, line=5, xlim=c(4.8,20.3), ylim=c(4,120), 
+           main="", cc=FALSE)
 statav <- PTQlines(prob="99.9%", dn="gpa", col=addAlpha("blue", alpha))
 lines(aid$mid, 10^statav_e, col="green3", lwd=3) 
 lines(aid$mid, 10^statav, lwd=3) 
 legend("topleft", "Parametric", bty="n")
-aid$cc_lines(NA, mainargs=list(col=2))
+aid$cc_lines(NA, mainargs=list(col=2, lty=2))
 #title(main=alpha, line=-3, outer=T)
 }
 rm(alpha)
@@ -585,7 +587,7 @@ pdf("fig/fig4.pdf", height=4, pointsize=11)
 layout(matrix(c(1:3, rep(4,3)), ncol=2), widths=c(4,6))
 par(mar=c(0,3,0,0.3), oma=c(3.5,0,0.1,0), mgp=c(2.1, 0.8,0), las=1, lend=1, cex=1)
 # plot temperature dependent parameters:
-leg <- function(i) {abline(lm(y~x, data=xys[[i]]), col=2) 
+leg <- function(i) {abline(lm(y~x, data=xys[[i]]), col="orange") 
      legend("topleft", legend=dimnames(tdpar)[[1]][i], inset=c(-0.0, -0.0), bty="n")}
 xysplot <- function(i) plot(xys[[i]][,1],#+rnorm(994,sd=0.2), 
                             xys[[i]][,2], 
@@ -607,13 +609,13 @@ ciBand(yu=10^tdsimA["70%","empirical","99.9%",], nastars=FALSE,
 ciBand(yu=10^tdsimA["70%","gpa","99.9%",], nastars=FALSE,
        ym=10^tdsimA["50%","gpa","99.9%",],
        yl=10^tdsimA["30%","gpa","99.9%",], x=tdsimt, colm="blue", add=TRUE)
-aid$cc_lines(NA)
+aid$cc_lines(NA, mainargs=list(col=2, lty=2))
 tplot <- seq(5,21,1)
-lines(tplot, sapply(tplot, function(t) 10^lmomco::quagpa(f=0.999, tdsimp(t))), lty=3, col=2)
+lines(tplot, sapply(tplot, function(t) 10^lmomco::quagpa(f=0.999, tdsimp(t))), lwd=2, col="orange")
 legend("topleft", c("CC-scaling", "Real value from parameters in the left panel", 
                     "Parametric quantile", 
                     "Empirical quantile", "Central 40% of 1000 simulations"),
-       lwd=c(1,1,2,2,11), lty=c(1,3,1,1), col=c(1,2,"blue","green3",8), bg="white", cex=0.8)
+       lwd=c(1,2,2,2,11), lty=c(3,1,1,1), col=c(2,"orange","blue","green3",8), bg="white", cex=0.8)
 text(20, c(1.25, 1.45), c("empirical","parametric") )
 dev.off()
 
