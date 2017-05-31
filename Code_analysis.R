@@ -612,7 +612,7 @@ ciBand(yu=10^tdsimA["70%","gpa","99.9%",], nastars=FALSE,
 aid$cc_lines(NA, mainargs=list(col=2, lty=2))
 tplot <- seq(5,21,1)
 lines(tplot, sapply(tplot, function(t) 10^lmomco::quagpa(f=0.999, tdsimp(t))), lwd=2, col="orange")
-legend("topleft", c("CC-scaling", "Real value from parameters in the left panel", 
+legend("topleft", c("CC-scaling", "True value from parameters in the left panel", 
                     "Parametric quantile", 
                     "Empirical quantile", "Central 40% of 1000 simulations"),
        lwd=c(1,2,2,2,11), lty=c(3,1,1,1), col=c(2,"orange","blue","green3",8), bg="white", cex=0.8)
