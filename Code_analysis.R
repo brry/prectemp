@@ -621,3 +621,25 @@ dev.off()
 
 
 
+# ......... ----
+# 5 independency check ----
+load("dataprods/PT.Rdata")
+
+# threshold exceedances (at 90% truncation)
+PTt <- lapply(PT, function(x) x[x$prec>quantile(x$prec,0.9),])
+
+x <- PTt[[1]]
+diff <- as.numeric(diff(x$date))
+hist(diff[diff<50], breaks=500, las=1)
+plot(ecdf(diff), xlim=c(1,30), las=1)
+rm(diff,x)
+
+diffs <- sapply(PTt, function(x){d <- as.numeric(diff(x$date)); 
+                                 c(diff_1=mean(d==1), diff_10=mean(d<=10))} )
+
+diffs <- as.data.frame(t(diffs*100))
+hist(diffs$diff_1 , breaks=50, las=1, main=round(median(diffs$diff_1) ), col="moccasin")
+hist(diffs$diff_10, breaks=50, las=1, main=round(median(diffs$diff_10)), col="moccasin")
+
+
+
