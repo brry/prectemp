@@ -310,3 +310,55 @@ PTQlines(PTQe12, empav=statave); legend("topleft", "GPD (>=12 hours apart)", bty
 title(xlab="Dewpoint temperature (mean of preceding 5 hours)  [ \U{00B0}C]", outer=TRUE, line=0.5)
 title(ylab="Event maximum precipitation 99.9% quantile  [mm/h]", outer=TRUE, line=0.5)
 dev.off()
+
+
+
+
+# 6. PTQ all quantiles ----
+
+source("Code_aid.R"); aid$load("PTQ")
+
+PTQlines <- function(
+prob="",  
+dn="gpa",
+cut=150,
+col=addAlpha("blue", 0.15),
+...
+)
+{
+aid$PTplot(xlim=c(4.8,20.3), ylim=c(5,150), cc=FALSE)
+for(i in 1:142) lines(aid$mid, 10^PTQ[dn,prob,,i], col=col, ...) 
+stats <- PTQ[dn,prob,,]
+stats <- replace(stats, stats>cut, NA)  
+statav <- rowMeans(stats, na.rm=TRUE)
+statav[apply(stats,1,function(x) sum(!is.na(x))<50)] <- NA
+#
+estats <- PTQ["empirical",prob,,]
+estats <- replace(estats, estats>cut, NA)  
+estatav <- rowMeans(estats, na.rm=TRUE)
+estatav[apply(estats,1,function(x) sum(!is.na(x))<50)] <- NA
+lines(aid$mid, 10^estatav, lwd=3, col="green3")
+#
+lines(aid$mid, 10^statav, lwd=3)
+aid$cc_lines(NA, mainargs=list(col=2, lty=2))
+legend("topleft", prob, bty="n")
+return(invisible(statav))
+}
+
+
+pdf("fig/sup6_PT_allprobs.pdf", height=5)
+par(mfrow=c(2,2), mar=c(2,2,0.5,0.5), oma=c(2,2,0,0))
+for(prob in names(aid$probcols) ) PTQlines(prob=prob)
+title(xlab="Dewpoint temperature (mean of preceding 5 hours)  [ \U{00B0}C]", outer=TRUE, line=0.5)
+title(ylab="Precipitation quantile  [mm/h]", outer=TRUE, line=0.5)
+rm(prob)
+dev.off()
+
+
+pdf("fig/PT_99.pdf", height=5)
+par(mar=c(4,4,0.5,0.5))
+aid$PTplot(prob="99%", xlim=c(7,21), ylim=c(7,60), main="", line=2.5)
+for(i in 1:142) lines(aid$mid, 10^PTQ["empirical","99%",,i], col=addAlpha("green3", 0.3)) 
+for(i in 1:142) lines(aid$mid, 10^PTQ["gpa",      "99%",,i], col=addAlpha("blue"  , 0.3))
+rm(i)
+dev.off()
