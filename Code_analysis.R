@@ -469,8 +469,7 @@ lines(aid$mid, 10^statav_e, lwd=3)
 aid$cc_lines(NA, mainargs=list(col=2, lty=2))
 legend("topleft", "Empirical", bty="n")
 #
-aid$PTplot(prob="99.9%", outer=TRUE, line=5, xlim=c(4.8,20.3), ylim=c(4,120), 
-           main="", cc=FALSE)
+aid$PTplot(xlim=c(4.8,20.3), ylim=c(4,120), main="", xlab="", ylab="", cc=FALSE)
 statav <- PTQlines(prob="99.9%", dn="gpa", col=addAlpha("blue", alpha))
 lines(aid$mid, 10^statav_e, col="green3", lwd=3) 
 lines(aid$mid, 10^statav, lwd=3) 
