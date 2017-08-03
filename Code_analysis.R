@@ -619,27 +619,3 @@ legend("topleft", c("CC-scaling", "True value from parameters in the left panel"
 text(20, c(1.25, 1.45), c("empirical","parametric") )
 dev.off()
 
-
-
-# ......... ----
-# 5 independency check ----
-load("dataprods/PT.Rdata")
-
-# threshold exceedances (at 90% truncation)
-PTt <- lapply(PT, function(x) x[x$prec>quantile(x$prec,0.9),])
-
-diffs <- sapply(PTt, function(x){d <- as.numeric(diff(x$date))
-                                 c(d1=mean(d==1), d10=mean(d<=10), d24=mean(d<=24))} )
-diffs <- as.data.frame(t(diffs*100))
-
-png("fig/timediff.png", width=5, height=7, units="in", res=500)
-par(mfrow=c(3,1), mar=c(3,3,2,1), oma=c(0,0,4,0), mgp=c(2,0.7,0), las=1)
-hist(diffs$d1 , breaks=50, main=round(median(diffs$d1) ), col="moccasin")
-hist(diffs$d10, breaks=50, main=round(median(diffs$d10)), col="moccasin")
-hist(diffs$d24, breaks=50, main=round(median(diffs$d24)), col="moccasin")
-title(main="Time difference between threshold exceedances
-      Median and histogram of percentage 
-      of differences below 1, 10 and 24 hours", outer=TRUE)
-dev.off()
-
-

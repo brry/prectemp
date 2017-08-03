@@ -195,3 +195,118 @@ legend("bottomright", c("LM/PWM", "MLE", "Empirical", "CC scaling"),
 dev.off()
 
 
+
+
+# ......... ----
+# 5. Independency check ----
+load("dataprods/PT.Rdata")
+
+# 5.1. Time between events ----
+
+# threshold exceedances (at 90% truncation)
+PTt <- lapply(PT, function(x) x[x$prec>quantile(x$prec,0.9),])
+
+diffs <- sapply(PTt, function(x){d <- as.numeric(diff(x$date))
+                                 c(d1=mean(d==1), d10=mean(d<=10), d24=mean(d<=24))} )
+diffs <- as.data.frame(t(diffs*100))
+
+png("fig/timediff.png", width=5, height=7, units="in", res=500)
+par(mfrow=c(3,1), mar=c(3,3,2,1), oma=c(0,0,4,0), mgp=c(2,0.7,0), las=1)
+hist(diffs$d1 , breaks=50, main=round(median(diffs$d1) ), col="moccasin")
+hist(diffs$d10, breaks=50, main=round(median(diffs$d10)), col="moccasin")
+hist(diffs$d24, breaks=50, main=round(median(diffs$d24)), col="moccasin")
+title(main="Time difference between threshold exceedances
+      Median and histogram of percentage 
+      of differences below 1, 10 and 24 hours", outer=TRUE)
+dev.off()
+
+
+# 5.2. Pq-T for independent events ----
+source("Code_aid.R"); aid$load("PT"); library(extremeStat)
+
+# https://stackoverflow.com/questions/45440342
+
+eventize <- function(x, mindiff=1) 
+  {
+  diffs <- as.difftime(diff(x$date))
+  units(diffs) <- "hours"
+  diffs <- as.numeric(diffs) 
+  diffs <- c(0, diffs)
+  event <- cumsum(diffs>mindiff) # distinct event if more than n hours apart
+  xmax <- unlist(tapply(x$prec, event, FUN=function(v){
+    out <- rep(0, length(v))
+    out[which.max(v)] <- 1 # select first maximum value if there are ties
+    out
+    }))
+  x[xmax==1,]
+  }
+
+PTe01 <- pbsapply(PT, eventize,             simplify=FALSE)
+PTe05 <- pbsapply(PT, eventize, mindiff= 5, simplify=FALSE)
+PTe12 <- pbsapply(PT, eventize, mindiff=12, simplify=FALSE)
+rm(eventize)
+
+PTQ <- function(i, obj)
+  {
+  x <- obj[[i]] # x <- PTe01[[3]]; t=15.5
+  # Quantile estimates per temperature bin
+  binQ <- lapply(aid$mid, function(t) {
+    seldat <- x$prec[ x$temp5>(t-1) & x$temp5<=(t+1)]
+    extremeStat::distLquantile(log10(seldat), probs=aid$probs, truncate=0.9,  
+                               sel="gpa", gpd=FALSE, order=FALSE, quiet=TRUE, weighted=FALSE)
+    })
+  binQ2 <- berryFunctions::l2array(binQ)
+  names(dimnames(binQ2)) <- c("distr","prob","temp") ; dimnames(binQ2)[[3]] <- aid$mid
+  return(binQ2)
+}
+PTQe01 <- pblapply(X=1:142, FUN=PTQ, obj=PTe01) # 4:33 min
+PTQe05 <- pblapply(X=1:142, FUN=PTQ, obj=PTe05) # 3:49 min
+PTQe12 <- pblapply(X=1:142, FUN=PTQ, obj=PTe12) # 3:29 min
+rm(PTQ)
+l2a <- function(x) {x <- l2array(x); 
+                    names(dimnames(x))[4] <- "stat"
+                    dimnames(x)[[4]] <- names(PT)
+                    x}
+PTQe01 <- l2a(PTQe01)
+PTQe05 <- l2a(PTQe05)
+PTQe12 <- l2a(PTQe12)
+rm(l2a)
+save(PTQe01,PTQe05,PTQe12, file="dataprods/PTQe.Rdata") 
+
+
+# 5.3. Pq-T events Vis ----
+source("Code_aid.R"); aid$load("PTQe", "PTQ")
+
+PTQlines <- function(
+PTQ,
+prob="99.9%",  
+dn="gpa",
+cut=150,
+col=addAlpha("blue", 0.15),
+empav=NULL,
+...
+)
+{
+aid$PTplot(xlim=c(4.8,20.3), ylim=c(5,150), cc=FALSE)
+for(i in 1:142) lines(aid$mid, 10^PTQ[dn,prob,,i], col=col, ...) 
+stats <- PTQ[dn,prob,,]
+stats <- replace(stats, stats>cut, NA)  
+statav <- rowMeans(stats, na.rm=TRUE)
+statav[apply(stats,1,function(x) sum(!is.na(x))<50)] <- NA
+if(!is.null(empav)) lines(aid$mid, 10^empav, col="green3", lwd=3) 
+lines(aid$mid, 10^statav, lwd=3)
+aid$cc_lines(NA, mainargs=list(col=2, lty=2))
+return(invisible(statav))
+}
+
+
+pdf("fig/sup5_PTQ_independent_events.pdf", height=5)
+par(mfrow=c(2,2), mar=c(2,2,0.5,0.5), oma=c(2,2,0,0))
+statave <- PTQlines(PTQ, dn="empirical", col=addAlpha("green3", 0.15))
+legend("topleft", "Empirical, all rainfall observations", bty="n")
+PTQlines(PTQe01, empav=statave); legend("topleft", "GPD, event maxima (>=1 hour apart)", bty="n")
+PTQlines(PTQe05, empav=statave); legend("topleft", "GPD (>=5 hours apart)", bty="n")
+PTQlines(PTQe12, empav=statave); legend("topleft", "GPD (>=12 hours apart)", bty="n")
+title(xlab="Dewpoint temperature (mean of preceding 5 hours)  [ \U{00B0}C]", outer=TRUE, line=0.5)
+title(ylab="Event maximum precipitation 99.9% quantile  [mm/h]", outer=TRUE, line=0.5)
+dev.off()
