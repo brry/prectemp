@@ -587,7 +587,8 @@ layout(matrix(c(1:3, rep(4,3)), ncol=2), widths=c(4,6))
 par(mar=c(0,3,0,0.3), oma=c(3.5,0,0.1,0), mgp=c(2.1, 0.8,0), las=1, lend=1, cex=1)
 # plot temperature dependent parameters:
 leg <- function(i) {abline(lm(y~x, data=xys[[i]]), col="orange") 
-     legend("topleft", legend=dimnames(tdpar)[[1]][i], inset=c(-0.0, -0.0), bty="n")}
+     legend("topleft", legend=parse(text=dimnames(tdpar)[[1]][i]), 
+            inset=c(-0.0, -0.0), bty="n")}
 xysplot <- function(i) plot(xys[[i]][,1],#+rnorm(994,sd=0.2), 
                             xys[[i]][,2], 
                             xlim=c(4,16), pch=16, col=addAlpha(1,0.2), ann=FALSE, axes=F)
