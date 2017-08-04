@@ -362,3 +362,26 @@ for(i in 1:142) lines(aid$mid, 10^PTQ["empirical","99%",,i], col=addAlpha("green
 for(i in 1:142) lines(aid$mid, 10^PTQ["gpa",      "99%",,i], col=addAlpha("blue"  , 0.3))
 rm(i)
 dev.off()
+
+
+# 7. n per bin ----
+
+source("Code_aid.R"); aid$load("PTQ")
+statav <- rowMeans(PTQ["n_full","90%",,], na.rm=TRUE)
+
+pdf("fig/sup7_nperbin.pdf", height=4)
+par(mfrow=c(1,2), mar=c(3.4,4.5,0.5,0.5))
+# linear axis:
+plot(1, xlim=c(4.8,20.5), xaxs="i", ylim=lim0(2100), type="n", las=1, ann=F)
+title(xlab="Dewpoint temperature (mean of preceding 5 hours)  [ \U{00B0}C]", 
+      line=-1.3, outer=TRUE)
+title(ylab="sample size per temperature bin", line=3.3)
+for(i in 1:142) lines(aid$mid, PTQ["n_full","90%",,i], col=addAlpha(1) ) ; rm(i)
+lines(aid$mid, statav, lwd=3, col="red")
+# log scale:
+aid$PTplot(xlim=c(4.8,20.5), ylim=c(50,2000), main="", cc=FALSE, xlab="",
+           ylab="n per bin, log scale", line=3.3)
+for(i in 1:142) lines(aid$mid, PTQ["n_full","90%",,i], col=addAlpha(1) ) ; rm(i)
+lines(aid$mid, statav, lwd=3, col="red")
+dev.off()
+
