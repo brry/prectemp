@@ -11,9 +11,11 @@ The evaluation suggests that very high rainfall values may be possible but simpl
 With regard to global and regional warming, this is an important finding e.g. for the planning of flash flood protective measures.
 
 
-The paper resulting from our work is submitted and open for review at
-
+The paper resulting from our work is submitted and open for review at  
 www.nat-hazards-earth-syst-sci-discuss.net/nhess-2016-183
+
+The code for the analysis and image generation is available with a DOI:  
+[![DOI](https://zenodo.org/badge/33126727.svg)](https://zenodo.org/badge/latestdoi/33126727)
 
 
 
